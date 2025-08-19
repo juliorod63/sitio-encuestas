@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import spacy
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
-from textblob import TextBlob
+
 
 nlp = spacy.load("es_core_news_sm")
 
