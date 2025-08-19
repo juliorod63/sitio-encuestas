@@ -88,10 +88,3 @@ opcion = st.selectbox("Selecciona una variable para analizar NPS_Recomendacion:"
 # Gráfico de distribución de NPS_Recomendacion según la variable seleccionada
 fig = px.box(df, x=opcion, y="NPS_Recomendar", title=f"NPS_Recomendacion según {opcion}")
 st.plotly_chart(fig)
-
-
-
-
-
-
-
