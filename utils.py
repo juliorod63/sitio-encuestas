@@ -12,8 +12,6 @@ def load_data(file_path):
     df = pd.read_csv(file_path)
     return df
 
-def plot_results(df):
-    st.bar_chart(df["satisfaction_rating"]) 
 
 def calcular_NPS_Modulo(df):
     promoters = df[df["NPS_Modulo"] >= 9].shape[0]
