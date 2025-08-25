@@ -3,9 +3,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
 import numpy as np
-import spacy
 import matplotlib.pyplot as plt
-from wordcloud import WordCloud
+
 
 from utils import load_data, limpiar_texto, transformacion_df, calcular_NPS_Alexia, calcular_NPS_Modulo, transformacion_df_comentarios
 
