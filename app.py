@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-from utils import load_data, limpiar_texto, transformacion_df, calcular_NPS_Alexia, calcular_NPS_Modulo, transformacion_df_comentarios
+from utils import load_data, transformacion_df, calcular_NPS_Alexia, calcular_NPS_Modulo, calcular_CSAT
 
 #nlp = spacy.load("es_core_news_sm")
 
@@ -38,9 +38,10 @@ df = transformacion_df(df)
 st.dataframe(df)
 
 st.divider()
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 col1.metric(label="NPS Alexia", value=f"{calcular_NPS_Alexia(df):.2f}")
 col2.metric(label="NPS Modulo", value=f"{calcular_NPS_Modulo(df):.2f}")
+col3.metric(label="CSAT", value=f"{calcular_CSAT(df):.2f}")
 st.divider()
 
 

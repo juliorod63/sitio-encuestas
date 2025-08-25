@@ -31,6 +31,11 @@ def calcular_NPS_Alexia(df):
         return 0
     return nps
 
+def calcular_CSAT(df):
+    csat = (df["CS_Alexia"].isin([4, 5]).sum() / df["CS_Alexia"].count()) * 100
+    return csat
+    
+
 def transformacion_df(df):
 
     df.rename(columns={df.columns[1]: "email", df.columns[2]:"Nombre", df.columns[3]:"Centro", df.columns[4]:"Cargo", df.columns[5]:"Antiguedad", df.columns[6]:"Modulo_Usado",df.columns[7]:"Satisf_Modulo",df.columns[8]:"NPS_Modulo",df.columns[9]:"Capacitacion",df.columns[10]:"CS_Alexia", df.columns[11]:"Funcionalidad_Alexia", df.columns[12]:"Amigable_Alexia",df.columns[13]:"NPS_Recomendar", df.columns[14]:"Mejoras"}, inplace=True)
