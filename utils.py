@@ -1,12 +1,11 @@
 import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
-import spacy
+#import spacy
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
-
-nlp = spacy.load("es_core_news_sm")
+#nlp = spacy.load("es_core_news_sm")
 
 def load_data(file_path):
     df = pd.read_csv(file_path)

@@ -9,7 +9,7 @@ from wordcloud import WordCloud
 
 from utils import load_data, limpiar_texto, transformacion_df, calcular_NPS_Alexia, calcular_NPS_Modulo, transformacion_df_comentarios
 
-nlp = spacy.load("es_core_news_sm")
+#nlp = spacy.load("es_core_news_sm")
 
 st.set_page_config(
     page_title="Resultados Encuesta Satisfacción Clientes Chile",
@@ -68,12 +68,12 @@ df_comentarios = transformacion_df_comentarios(df)
 df_comentarios_limpios = df_comentarios.apply(limpiar_texto)
  
 # Genera la nube de palabras
-texto_unido = " ".join(df_comentarios_limpios)
+""" texto_unido = " ".join(df_comentarios_limpios)
 # Genera la nube de palabras
 wordcloud = WordCloud(width=800, height=400, background_color='white').generate(texto_unido)
 fig, ax = plt.subplots(figsize=(10, 5))
 ax.imshow(wordcloud, interpolation='bilinear')
-ax.axis('off')
+ax.axis('off') """
 
 # Muestra la imagen en Streamlit
 st.pyplot(fig)
@@ -87,4 +87,7 @@ opcion = st.selectbox("Selecciona una variable para analizar NPS_Recomendacion:"
 
 # Gráfico de distribución de NPS_Recomendacion según la variable seleccionada
 fig = px.box(df, x=opcion, y="NPS_Recomendar", title=f"NPS_Recomendacion según {opcion}")
+st.plotly_chart(fig)
+
+fig = px.box(df, x=opcion, y="CS_Alexia", title=f"Satifaccion Alexia según {opcion}")
 st.plotly_chart(fig)
