@@ -61,21 +61,6 @@ st.markdown("### Matriz de Dispersión")
 fig = ff.create_scatterplotmatrix(df[cols], diag='box',height=800, width=800)
 st.plotly_chart(fig, use_container_width=True)
 
-st.markdown("### Analisis de comentarios - Nube de Palabras (tokenizadas)")
-# Aplica la función a los comentarios
-df_comentarios = transformacion_df_comentarios(df)
-df_comentarios_limpios = df_comentarios.apply(limpiar_texto)
- 
-# Genera la nube de palabras
-""" texto_unido = " ".join(df_comentarios_limpios)
-# Genera la nube de palabras
-wordcloud = WordCloud(width=800, height=400, background_color='white').generate(texto_unido)
-fig, ax = plt.subplots(figsize=(10, 5))
-ax.imshow(wordcloud, interpolation='bilinear')
-ax.axis('off') """
-
-# Muestra la imagen en Streamlit
-st.pyplot(fig)
 
 
 st.markdown("### Análisis de NPS por Variables")
