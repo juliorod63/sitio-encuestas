@@ -2,3 +2,6 @@
 /.streamlit
 /survey
 encuesta.ipynb
+__pycache
+__pycache__/utils.cpython-310.pyc
+    
