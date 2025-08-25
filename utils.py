@@ -136,10 +136,10 @@ def transformacion_df_comentarios(df):
     df_comentarios = df_comentarios.str.lower().str.replace("[-_ . , ]", " ", regex=True)
     return df_comentarios
 
-def tokenizar(df_comentarios):
+""" def tokenizar(df_comentarios):
     nlp = spacy.load("es_core_news_sm")
     doc = nlp(" ".join(df_comentarios))
-    return [token.text for token in doc if not token.is_stop and not token.is_punct]
+    return [token.text for token in doc if not token.is_stop and not token.is_punct] """
 
 
 # Función para limpiar texto: tokenizar y eliminar stop words y signos de puntuación
