@@ -77,3 +77,13 @@ st.plotly_chart(fig)
 
 fig = px.box(df, x=opcion, y="CS_Alexia", title=f"Satifaccion Alexia según {opcion}")
 st.plotly_chart(fig)
+
+st.markdown("### Cantidad de Respuestas por Centro")
+
+centros_count = df["Centro"].value_counts().reset_index()
+centros_count.columns = ["Centro", "Respuestas"]
+
+fig = px.bar(centros_count, x="Centro", y="Respuestas", title="Cantidad de respuestas por Centro")
+st.plotly_chart(fig)
+
+
