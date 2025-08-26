@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-from utils import load_data, transformacion_df, calcular_NPS_Alexia, calcular_NPS_Modulo, calcular_CSAT
+from utils import load_data, transformacion_df, calcular_NPS_Alexia, calcular_NPS_Modulo, calcular_CSAT, transformar_centros
 
 #nlp = spacy.load("es_core_news_sm")
 
@@ -34,6 +34,7 @@ df = load_data(file_path)
 st.markdown("### Resultados de la Encuesta")
 st.write(" Respuestas: ", df.shape[0])
 df = transformacion_df(df)
+df = transformar_centros(df)
 
 st.dataframe(df)
 
