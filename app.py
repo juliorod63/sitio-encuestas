@@ -87,3 +87,17 @@ fig = px.bar(centros_count, x="Centro", y="Respuestas", title="Cantidad de respu
 st.plotly_chart(fig)
 
 
+st.markdown("### Análisis Detallado NPS Recomendar por Centro")
+# Selector de centro
+centros_ordenados = sorted(df["Centro"].unique())
+centro_seleccionado = st.selectbox("Selecciona un centro:", centros_ordenados)
+
+# Filtra el DataFrame por el centro seleccionado
+df_filtrado = df[df["Centro"] == centro_seleccionado]
+
+
+# Grafica la distribución de NPS_Alexia para ese centro
+fig = px.histogram(df_filtrado, x="NPS_Recomendar", nbins=10, title=f"Distribución de NPS_Recomendar en {centro_seleccionado}")
+st.plotly_chart(fig)
+
+

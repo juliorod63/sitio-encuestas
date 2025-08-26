@@ -193,6 +193,7 @@ def transformar_centros(df):
     df.loc[df["Centro"].str.contains("Alicante maipu", case=False), "Centro"] = "Alicante Maipú"
     df.loc[df["Centro"].str.contains("Colegio Alicante maipú", case=False), "Centro"] = "Alicante Maipú"
     df.loc[df["Centro"].str.contains("Colegio Alicante de Maipú", case=False), "Centro"] = "Alicante Maipú"
+    df.loc[df["Centro"].str.contains("Alicante de maipú", case=False), "Centro"] = "Alicante Maipú"
     df.loc[df["Centro"].str.contains("Alicante de la florida", case=False), "Centro"] = "Alicante Florida"
     df.loc[df["Centro"].str.contains("alicante la florida", case=False), "Centro"] = "Alicante Florida"
     df.loc[df["Centro"].str.contains("claudio matte", case=False), "Centro"] = "Claudio Matte"
@@ -211,6 +212,7 @@ def transformar_centros(df):
     df.loc[df["Centro"].str.contains("Colegio Alcántara de Cordillera.", case=False), "Centro"] = "Alcantara de Cordillera"
     df.loc[df["Centro"].str.contains("Colegio Alcántara de la Cordillera", case=False), "Centro"] = "Alcantara de Cordillera"
     df.loc[df["Centro"].str.contains("Colegio alemán de valparaisoñr", case=False), "Centro"] = "Colegio Alemán de Valparaíso"
+    df.loc[df["Centro"].str.contains("Colegio Alemán de Valparaíso", case=False), "Centro"] = "Colegio Alemán de Valparaíso"
     df.loc[df["Centro"].str.contains("Colegio creación concepcion", case=False), "Centro"] = "Colegio Creación Concepción"
 
 
