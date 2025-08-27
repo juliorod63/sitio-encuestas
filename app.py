@@ -122,3 +122,9 @@ st.plotly_chart(fig)
 st.markdown("### NPS_Alexia por Centro")
 st.dataframe(tabla_nps)
 
+st.markdown("### Análisis NPS por Rol"  )
+tabla_nps_rol = df.groupby("Cargo", group_keys=False).apply(calcular_NPS_Alexia).reset_index()
+tabla_nps_rol.columns = ["Cargo", "NPS_Alexia"]
+
+fig = px.bar(tabla_nps_rol, x="Cargo", y="NPS_Alexia", title="NPS Alexia por Cargo")
+st.plotly_chart(fig)
