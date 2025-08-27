@@ -37,7 +37,7 @@ df = transformacion_df(df)
 df = transformar_centros(df)
 
 st.dataframe(df)
-
+st.markdown("### Métricas Clave")
 st.divider()
 col1, col2, col3, col4 = st.columns(4)
 col1.metric(label="NPS Alexia", value=f"{calcular_NPS_Alexia(df):.2f}")
