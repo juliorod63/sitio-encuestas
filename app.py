@@ -104,7 +104,10 @@ st.plotly_chart(fig)
 tabla_nps = df.groupby("Centro", group_keys=False).apply(calcular_NPS_Alexia).reset_index()
 tabla_nps.columns = ["Centro", "NPS_Alexia"]
 
+
+fig = px.bar(tabla_nps, x="Centro", y="NPS_Alexia", title="NPS Alexia por Centro")
+st.plotly_chart(fig)
+
 st.markdown("### NPS_Alexia por Centro")
 st.dataframe(tabla_nps)
-
 
