@@ -100,4 +100,11 @@ st.metric(label="NPS Recomendar", value=f"{calcular_NPS_Alexia(df_filtrado):.2f}
 fig = px.histogram(df_filtrado, x="NPS_Recomendar", nbins=10, title=f"Distribución de NPS_Recomendar en {centro_seleccionado}")
 st.plotly_chart(fig)
 
+# Supón que calcular_NPS_Alexia recibe un DataFrame y calcula el NPS
+tabla_nps = df.groupby("Centro").apply(calcular_NPS_Alexia).reset_index()
+tabla_nps.columns = ["Centro", "NPS_Alexia"]
+
+st.markdown("### NPS_Alexia por Centro")
+st.dataframe(tabla_nps)
+
 
