@@ -24,9 +24,9 @@ def calcular_NPS_Alexia(df):
     promoters = df[df["NPS_Recomendar"] >= 9].shape[0]
     detractors = df[df["NPS_Recomendar"] <= 6].shape[0]
     total = df["NPS_Recomendar"].shape[0]
-    print (total, promoters, detractors)
+    #print (total, promoters, detractors)
     nps = ((promoters - detractors) / total) * 100
-    print(nps)
+    #print(nps)
     if total == 0:
         return 0
     return nps
