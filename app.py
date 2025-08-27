@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-from utils import load_data, transformacion_df, calcular_NPS_Alexia, calcular_NPS_Modulo, calcular_CSAT, transformar_centros
+from utils import load_data, transformacion_df, calcular_NPS_Alexia, calcular_NPS_Modulo, calcular_CSAT, transformar_centros, calcular_CSAT_Capacitacion
 
 #nlp = spacy.load("es_core_news_sm")
 
@@ -39,10 +39,12 @@ df = transformar_centros(df)
 st.dataframe(df)
 
 st.divider()
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 col1.metric(label="NPS Alexia", value=f"{calcular_NPS_Alexia(df):.2f}")
 col2.metric(label="NPS Modulo", value=f"{calcular_NPS_Modulo(df):.2f}")
 col3.metric(label="CSAT", value=f"{calcular_CSAT(df):.2f}")
+col4.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df):.2f}")
+
 st.divider()
 
 
@@ -83,6 +85,8 @@ st.markdown("### Análisis de Respuestas por Centro")
 centros_count = df["Centro"].value_counts().reset_index()
 centros_count.columns = ["Centro", "Respuestas"]
 
+st.metric(label="Centros", value=f"{centros_count.shape[0]}")
+
 fig = px.bar(centros_count, x="Centro", y="Respuestas", title="Cantidad de respuestas por Centro")
 st.plotly_chart(fig)
 
@@ -94,8 +98,15 @@ centro_seleccionado = st.selectbox("Selecciona un centro:", centros_ordenados)
 
 # Filtra el DataFrame por el centro seleccionado
 df_filtrado = df[df["Centro"] == centro_seleccionado]
-st.metric(label="Respuestas", value=f"{df_filtrado.shape[0]}")
-st.metric(label="NPS Recomendar", value=f"{calcular_NPS_Alexia(df_filtrado):.2f}")
+st.divider()
+
+col1, col2, col3, col4 = st.columns(4)
+
+col1.metric(label="Respuestas", value=f"{df_filtrado.shape[0]}")
+col2.metric(label="NPS Recomendar", value=f"{calcular_NPS_Alexia(df_filtrado):.2f}")
+col3.metric(label="CSAT", value=f"{calcular_CSAT(df_filtrado):.2f}")
+col4.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df_filtrado):.2f}")
+
 # Grafica la distribución de NPS_Alexia para ese centro
 fig = px.histogram(df_filtrado, x="NPS_Recomendar", nbins=10, title=f"Distribución de NPS_Recomendar en {centro_seleccionado}")
 st.plotly_chart(fig)

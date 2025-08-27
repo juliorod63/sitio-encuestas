@@ -31,6 +31,10 @@ def calcular_NPS_Alexia(df):
         return 0
     return nps
 
+def calcular_CSAT_Capacitacion(df):
+    csat = (df["Capacitacion"].isin([4, 5]).sum() / df["Capacitacion"].count()) * 100
+    return csat
+
 def calcular_CSAT(df):
     csat = (df["CS_Alexia"].isin([4, 5]).sum() / df["CS_Alexia"].count()) * 100
     return csat
