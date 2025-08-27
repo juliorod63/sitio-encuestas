@@ -58,8 +58,12 @@ st.plotly_chart(px.histogram(df, x="Cargo", color="Modulo_Usado", title="Distrib
 
 st.plotly_chart(px.histogram(df, x="NPS_Modulo", color="Antiguedad", title="Distribución por NPS Modulo y Antiguedad"))
 
+st.plotly_chart(px.histogram(df, x="Funcionalidad_Alexia", color="Cargo", title="Distribución por Funcionalidad y Cargo"))
+
+st.plotly_chart(px.histogram(df, x="Amigable_Alexia", color="Cargo", title="Distribución por Amigable y Cargo"))
+
 # Selecciona las columnas numéricas que quieres comparar
-cols = ["CS_Alexia", "NPS_Modulo", "NPS_Recomendar", "Satisf_Modulo"]  # ajusta según tus datos
+cols = ["CS_Alexia", "NPS_Modulo", "NPS_Recomendar", "Satisf_Modulo", "Funcionalidad_Alexia", "Amigable_Alexia", "Capacitacion"]  # ajusta según tus datos
 
 st.markdown("### Matriz de Dispersión")
 fig = ff.create_scatterplotmatrix(df[cols], diag='box',height=800, width=800)
@@ -122,9 +126,16 @@ st.plotly_chart(fig)
 st.markdown("### NPS_Alexia por Centro")
 st.dataframe(tabla_nps)
 
-st.markdown("### Análisis NPS por Rol"  )
+st.markdown("### Análisis NPS y CSAT por Rol"  )
 tabla_nps_rol = df.groupby("Cargo", group_keys=False).apply(calcular_NPS_Alexia).reset_index()
 tabla_nps_rol.columns = ["Cargo", "NPS_Alexia"]
 
 fig = px.bar(tabla_nps_rol, x="Cargo", y="NPS_Alexia", title="NPS Alexia por Cargo")
 st.plotly_chart(fig)
+
+tabla_csat_rol = df.groupby("Cargo", group_keys=False).apply(calcular_CSAT).reset_index()
+tabla_csat_rol.columns = ["Cargo", "CSAT"]
+
+fig = px.bar(tabla_csat_rol, x="Cargo", y="CSAT", title="CSAT por Cargo")
+st.plotly_chart(fig)
+
