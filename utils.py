@@ -310,9 +310,8 @@ def transformacion_df_comentarios(df):
     df_comentarios = df_comentarios.str.lower().str.replace("[-_ . , ]", " ", regex=True)
     return df_comentarios
 
-""" def tokenizar(df_comentarios):
-    nlp = spacy.load("es_core_news_sm")
-    doc = nlp(" ".join(df_comentarios))
-    return [token.text for token in doc if not token.is_stop and not token.is_punct] """
+def generate_wordcloud(text):
+    wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
+    return wordcloud
 
 
