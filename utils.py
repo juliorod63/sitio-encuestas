@@ -290,6 +290,8 @@ def transformar_centros(df):
     df.loc[df["Centro"].str.contains("montaner", case=False), "Centro"] = "Colegio Montaner de Hualpén"
     df.loc[df["Centro"].str.contains("cecilia", case=False), "Centro"] = "Colegio Santa Cecilia"
     df.loc[df["Centro"].str.contains("elidoro", case=False), "Centro"] = "Colegio Eliodoro Matte Ossa"
+    df.loc[df["Centro"].str.contains("eleodoro", case=False), "Centro"] = "Colegio Eliodoro Matte Ossa"
+    df.loc[df["Centro"].str.contains("eliodoro matte", case=False), "Centro"] = "Colegio Eliodoro Matte Ossa"
 
 
     return df
