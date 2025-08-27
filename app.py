@@ -101,7 +101,7 @@ fig = px.histogram(df_filtrado, x="NPS_Recomendar", nbins=10, title=f"Distribuci
 st.plotly_chart(fig)
 
 # Supón que calcular_NPS_Alexia recibe un DataFrame y calcula el NPS
-tabla_nps = df.groupby("Centro").apply(calcular_NPS_Alexia).reset_index()
+tabla_nps = df.groupby("Centro", group_keys=False).apply(calcular_NPS_Alexia).reset_index()
 tabla_nps.columns = ["Centro", "NPS_Alexia"]
 
 st.markdown("### NPS_Alexia por Centro")
