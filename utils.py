@@ -170,6 +170,7 @@ def transformar_centros(df):
     df.loc[df["Centro"].str.contains("EMO", case=False), "Centro"] = "Eliodoro Matte Ossa"
     df.loc[df["Centro"].str.contains("Colegio San Felipe diácono", case=False), "Centro"] = "Colegio San Felipe Diácono"
     df.loc[df["Centro"].str.contains("San Felipe Diácono", case=False), "Centro"] = "Colegio San Felipe Diácono"
+    df.loc[df["Centro"].str.contains("San Felipe diacono", case=False), "Centro"] = "Colegio San Felipe Diácono"
     df.loc[df["Centro"].str.contains("San esteban diácono", case=False), "Centro"] = "Colegio San Esteban Diácono"
     df.loc[df["Centro"].str.contains("maitenes", case=False), "Centro"] = "Colegio Maitenes"
     df.loc[df["Centro"].str.contains("instituto hebreo", case=False), "Centro"] = "Instituto Hebreo"
@@ -278,9 +279,18 @@ def transformar_centros(df):
     df.loc[df["Centro"].str.contains("trigales del maipo", case=False), "Centro"] = "Colegio Trigales del Maipo"
     df.loc[df["Centro"].str.contains("pudahuel", case=False), "Centro"] = "Colegio Santiago de Pudahuel"
     df.loc[df["Centro"].str.contains("talagante", case=False), "Centro"] = "Colegio Sagrado Corazón de Talagante"
+    df.loc[df["Centro"].str.contains("sagrado corazón", case=False), "Centro"] = "Colegio Sagrado Corazón de Talagante"
     df.loc[df["Centro"].str.contains("quilicura", case=False), "Centro"] = "Colegio Santiago Quilicura"
     df.loc[df["Centro"].str.contains("jjprieto", case=False), "Centro"] = "Colegio José Joaquín Prieto"
     df.loc[df["Centro"].str.contains("prieto", case=False), "Centro"] = "Colegio José Joaquín Prieto"
+    df.loc[df["Centro"].str.contains("c-dar", case=False), "Centro"] = "Colegio C-DAR"
+    df.loc[df["Centro"].str.contains("cdar", case=False), "Centro"] = "Colegio C-DAR"
+    df.loc[df["Centro"].str.contains("cambridge", case=False), "Centro"] = "Cambridge College"
+    df.loc[df["Centro"].str.contains("linares", case=False), "Centro"] = "Colegio Concepción Linares"
+    df.loc[df["Centro"].str.contains("montaner", case=False), "Centro"] = "Colegio Montaner de Hualpén"
+    df.loc[df["Centro"].str.contains("cecilia", case=False), "Centro"] = "Colegio Santa Cecilia"
+    df.loc[df["Centro"].str.contains("elidoro", case=False), "Centro"] = "Colegio Eliodoro Matte Ossa"
+
 
     return df
 
@@ -295,10 +305,4 @@ def transformacion_df_comentarios(df):
     doc = nlp(" ".join(df_comentarios))
     return [token.text for token in doc if not token.is_stop and not token.is_punct] """
 
-
-# Función para limpiar texto: tokenizar y eliminar stop words y signos de puntuación
-def limpiar_texto(texto):
-    doc = nlp(texto)
-    tokens = [token.lemma_ for token in doc if not token.is_stop and not token.is_punct]
-    return " ".join(tokens)
 
