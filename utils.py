@@ -268,6 +268,7 @@ def transformar_centros(df):
     df.loc[df["Centro"].str.contains("andres olea", case=False), "Centro"] = "Colegio Francisco Andres Olea"
     df.loc[df["Centro"].str.contains("andrés olea", case=False), "Centro"] = "Colegio Francisco Andres Olea"
     df.loc[df["Centro"].str.contains("ándres olea", case=False), "Centro"] = "Colegio Francisco Andres Olea"
+    df.loc[df["Centro"].str.contains("oléa", case=False), "Centro"] = "Colegio Francisco Andres Olea"
     df.loc[df["Centro"].str.contains("highlands", case=False), "Centro"] = "Colegio Highlands"
     df.loc[df["Centro"].str.contains("Presidente Alessandri", case=False), "Centro"] = "Colegio Presidente Alessandri"
     df.loc[df["Centro"].str.contains("Presidente Alessandrí", case=False), "Centro"] = "Colegio Presidente Alessandri"
@@ -276,6 +277,8 @@ def transformar_centros(df):
     df.loc[df["Centro"].str.contains("LBI", case=False), "Centro"] = "Liceo Bicentenario Italia"
     df.loc[df["Centro"].str.contains("guillermo matta", case=False), "Centro"] = "Guillermo Matta"
     df.loc[df["Centro"].str.contains("INSTITUTO HNOS. MATTE", case=False), "Centro"] = "Instituto Hermanos Matte"
+    df.loc[df["Centro"].str.contains("IHM", case=False), "Centro"] = "Instituto Hermanos Matte"
+    df.loc[df["Centro"].str.contains("hermanos matte", case=False), "Centro"] = "Instituto Hermanos Matte"
     df.loc[df["Centro"].str.contains("trigales del maipo", case=False), "Centro"] = "Colegio Trigales del Maipo"
     df.loc[df["Centro"].str.contains("pudahuel", case=False), "Centro"] = "Colegio Santiago de Pudahuel"
     df.loc[df["Centro"].str.contains("talagante", case=False), "Centro"] = "Colegio Sagrado Corazón de Talagante"
@@ -292,6 +295,10 @@ def transformar_centros(df):
     df.loc[df["Centro"].str.contains("elidoro", case=False), "Centro"] = "Colegio Eliodoro Matte Ossa"
     df.loc[df["Centro"].str.contains("eleodoro", case=False), "Centro"] = "Colegio Eliodoro Matte Ossa"
     df.loc[df["Centro"].str.contains("eliodoro matte", case=False), "Centro"] = "Colegio Eliodoro Matte Ossa"
+    df.loc[df["Centro"].str.contains("agustín alfonso", case=False), "Centro"] = "Colegio José Agustín Alfonso"
+    df.loc[df["Centro"].str.contains("perry", case=False), "Centro"] = "Liceo Agrícola Tadeo Perry Barnes"
+    df.loc[df["Centro"].str.contains("vittorio", case=False), "Centro"] = "Scuola Italiana Vittorio Montiglio"
+
 
 
     return df
