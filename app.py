@@ -74,10 +74,10 @@ variables = ["Cargo", "Antiguedad", "Centro", "Modulo_Usado"]  # agrega las vari
 opcion = st.selectbox("Selecciona una variable para analizar NPS_Recomendacion:", variables)
 
 # Gráfico de distribución de NPS_Recomendacion según la variable seleccionada
-fig = px.box(df, x=opcion, y="NPS_Recomendar", title=f"NPS_Recomendacion según {opcion}")
+fig = px.violin(df, x=opcion, y="NPS_Recomendar", title=f"NPS_Recomendacion según {opcion}")
 st.plotly_chart(fig)
 
-fig = px.box(df, x=opcion, y="CS_Alexia", title=f"Satifaccion Alexia según {opcion}")
+fig = px.violin(df, x=opcion, y="CS_Alexia", title=f"Satifaccion Alexia según {opcion}")
 st.plotly_chart(fig)
 
 st.markdown("### Análisis de Respuestas por Centro")
