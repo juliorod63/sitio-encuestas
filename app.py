@@ -167,3 +167,18 @@ tabla_csat_rol.columns = ["Cargo", "CSAT"]
 fig = px.bar(tabla_csat_rol, x="Cargo", y="CSAT", title="CSAT por Cargo")
 st.plotly_chart(fig)
 
+# Agrupar y calcular promedio CSAT
+df_burbujas = df.groupby(['Cargo', 'Antiguedad'], as_index=False)['CS_Alexia'].mean()
+df_burbujas.rename(columns={'CS_Alexia': 'CSAT_promedio'}, inplace=True)
+
+fig = px.scatter(
+    df_burbujas,
+    x='Cargo',
+    y='Antiguedad',
+    size='CSAT_promedio',
+    color='Cargo',
+    title='CSAT promedio por Cargo y Antigüedad',
+    size_max=40
+)
+fig.update_xaxes(type='category')
+st.plotly_chart(fig)
