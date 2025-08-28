@@ -33,7 +33,9 @@ df = load_data(file_path)
 
 st.markdown("### Resultados de la Encuesta")
 st.write(" Respuestas: ", df.shape[0])
+
 df = transformacion_df(df)
+
 df = transformar_centros(df)
 
 st.dataframe(df)

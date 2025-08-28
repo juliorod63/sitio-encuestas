@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 #nlp = spacy.load("es_core_news_sm")
 
 def load_data(file_path):
-    df = pd.read_csv(file_path)
+    df = pd.read_csv(file_path, encoding='ISO-8859-1', sep=';')
+    
     return df
 
 
