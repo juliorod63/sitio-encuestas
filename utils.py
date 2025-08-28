@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 #nlp = spacy.load("es_core_news_sm")
 
 def load_data(file_path):
-    df = pd.read_csv(file_path, encoding='ISO-8859-1', sep=';')
-    
+    df = pd.read_csv(file_path, encoding='utf-8', sep=';')
+
     return df
 
 
@@ -25,7 +25,6 @@ def calcular_NPS_Alexia(df):
     promoters = df[df["NPS_Recomendar"] >= 9].shape[0]
     detractors = df[df["NPS_Recomendar"] <= 6].shape[0]
     total = df["NPS_Recomendar"].shape[0]
-    #print (total, promoters, detractors)
     nps = ((promoters - detractors) / total) * 100
     #print(nps)
     if total == 0:

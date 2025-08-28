@@ -34,6 +34,7 @@ df = load_data(file_path)
 st.markdown("### Resultados de la Encuesta")
 st.write(" Respuestas: ", df.shape[0])
 
+
 df = transformacion_df(df)
 
 df = transformar_centros(df)
@@ -41,6 +42,28 @@ df = transformar_centros(df)
 st.dataframe(df)
 st.markdown("### Métricas Clave")
 st.divider()
+with st.expander("¿Cómo calculamos el NPS y el CSAT?"):
+
+    st.markdown("""
+    El NPS (Net Promoter Score) se calcula restando el porcentaje de detractores del porcentaje de promotores.
+    **Fórmula:**
+    ```python
+    NPS = (Promotores - Detractores) / Total de respuestas × 100
+    promoters = df[df["NPS_Recomendar"] >= 9].shape[0]
+    detractors = df[df["NPS_Recomendar"] <= 6].shape[0]
+    total = df["NPS_Recomendar"].shape[0]
+    nps = ((promoters - detractors) / total) * 100
+   
+
+    """)
+    st.markdown("""
+    El CSAT (Customer Satisfaction Score) se calcula como el porcentaje de respuestas positivas sobre el total de respuestas.
+    **Fórmula:**
+    ```python
+    CSAT = (Respuestas positivas / Total de respuestas) × 100
+    csat = (df["CS_Alexia"].isin([4, 5]).sum() / df["CS_Alexia"].count()) * 100
+    """)
+
 col1, col2, col3, col4 = st.columns(4)
 col1.metric(label="NPS Alexia", value=f"{calcular_NPS_Alexia(df):.2f}")
 col2.metric(label="NPS Modulo", value=f"{calcular_NPS_Modulo(df):.2f}")
