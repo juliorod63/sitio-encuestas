@@ -119,6 +119,13 @@ st.metric(label="Centros", value=f"{centros_count.shape[0]}")
 fig = px.bar(centros_count, x="Centro", y="Respuestas", title="Cantidad de respuestas por Centro")
 st.plotly_chart(fig)
 
+# calcular_NPS_Alexia recibe un DataFrame y calcula el NPS
+tabla_nps = df.groupby("Centro", group_keys=False).apply(calcular_NPS_Alexia).reset_index()
+tabla_nps.columns = ["Centro", "NPS_Alexia"]
+
+
+fig = px.bar(tabla_nps, x="Centro", y="NPS_Alexia", title="NPS Alexia por Centro")
+st.plotly_chart(fig)
 
 st.markdown("### Análisis Detallado NPS Recomendar por Centro")
 # Selector de centro
@@ -140,13 +147,9 @@ col4.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df_f
 fig = px.histogram(df_filtrado, x="NPS_Recomendar", nbins=10, title=f"Distribución de NPS_Recomendar en {centro_seleccionado}")
 st.plotly_chart(fig)
 
-# calcular_NPS_Alexia recibe un DataFrame y calcula el NPS
-tabla_nps = df.groupby("Centro", group_keys=False).apply(calcular_NPS_Alexia).reset_index()
-tabla_nps.columns = ["Centro", "NPS_Alexia"]
-
-
-fig = px.bar(tabla_nps, x="Centro", y="NPS_Alexia", title="NPS Alexia por Centro")
+fig = px.histogram(df_filtrado, x="CS_Alexia", nbins=10, title=f"Distribución de CSAT en {centro_seleccionado}")
 st.plotly_chart(fig)
+
 
 st.markdown("### NPS_Alexia por Centro")
 st.dataframe(tabla_nps)
