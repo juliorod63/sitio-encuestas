@@ -16,6 +16,16 @@ st.set_page_config(
     layout="wide"
 )
 
+st.sidebar.header("Resultados de la Encuesta")
+
+st.sidebar.markdown("- [Resultados de la Encuesta](#resultados-de-la-encuesta)")
+st.sidebar.markdown("- [Métricas Clave](#metricas-clave)")
+st.sidebar.markdown("- [Matriz de Dispersión](#matriz-de-dispersion)")
+st.sidebar.markdown("- [Análisis de NPS por Variables](#analisis-de-nps-por-variables)")
+st.sidebar.markdown("- [Análisis de Respuestas por Centro](#analisis-de-respuestas-por-centro)")
+st.sidebar.markdown("- [Análisis Detallado NPS Recomendar por Centro](#analisis-detallado-nps-recomendar-por-centro)")
+st.sidebar.markdown("- [Análisis NPS y CSAT por Rol](#analisis-nps-y-csat-por-rol)")
+
 st.title("Resultados Encuesta Satisfacción Clientes Chile")
 st.write("Bienvenido a la aplicación de Resultados Encuesta Satisfacción Clientes Chile.")
 
@@ -40,7 +50,8 @@ df = transformacion_df(df)
 df = transformar_centros(df)
 
 st.dataframe(df)
-st.markdown("### Métricas Clave")
+st.header("Métricas Clave")
+
 st.divider()
 with st.expander("¿Cómo calculamos el NPS y el CSAT?"):
 
@@ -65,10 +76,10 @@ with st.expander("¿Cómo calculamos el NPS y el CSAT?"):
     """)
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric(label="NPS Alexia", value=f"{calcular_NPS_Alexia(df):.2f}")
-col2.metric(label="NPS Modulo", value=f"{calcular_NPS_Modulo(df):.2f}")
-col3.metric(label="CSAT", value=f"{calcular_CSAT(df):.2f}")
-col4.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df):.2f}")
+col1.metric(label="NPS Alexia", value=f"{calcular_NPS_Alexia(df):.2f}", help="NPS basado en la pregunta de recomendar Alexia")
+col2.metric(label="NPS Modulo", value=f"{calcular_NPS_Modulo(df):.2f}", help="NPS basado en la pregunta de recomendar el Módulo")
+col3.metric(label="CSAT", value=f"{calcular_CSAT(df):.2f}", help="CSAT basado en la satisfacción con Alexia")
+col4.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df):.2f}", help="CSAT basado en la satisfacción con la Capacitación")
 
 st.divider()
 
