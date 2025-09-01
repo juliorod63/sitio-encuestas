@@ -16,15 +16,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.sidebar.header("Resultados de la Encuesta")
 
-st.sidebar.markdown("- [Resultados de la Encuesta](#resultados-de-la-encuesta)")
-st.sidebar.markdown("- [Métricas Clave](#metricas-clave)")
-st.sidebar.markdown("- [Matriz de Dispersión](#matriz-de-dispersion)")
-st.sidebar.markdown("- [Análisis de NPS por Variables](#analisis-de-nps-por-variables)")
-st.sidebar.markdown("- [Análisis de Respuestas por Centro](#analisis-de-respuestas-por-centro)")
-st.sidebar.markdown("- [Análisis Detallado NPS Recomendar por Centro](#analisis-detallado-nps-recomendar-por-centro)")
-st.sidebar.markdown("- [Análisis NPS y CSAT por Rol](#analisis-nps-y-csat-por-rol)")
 
 st.title("Resultados Encuesta Satisfacción Clientes Chile")
 st.write("Bienvenido a la aplicación de Resultados Encuesta Satisfacción Clientes Chile.")
@@ -32,9 +24,19 @@ st.write("Bienvenido a la aplicación de Resultados Encuesta Satisfacción Clien
 password_guess = st.text_input("Ingrese la contraseña para acceder a los resultados:", type="password")
 
 if password_guess != st.secrets["password"]:
+   
     st.write("Contraseña incorrecta. Inténtalo de nuevo.")
     st.stop()
 else:
+    st.sidebar.header("Resultados de la Encuesta")
+
+    st.sidebar.markdown("- [Resultados de la Encuesta](#resultados-de-la-encuesta)")
+    st.sidebar.markdown("- [Métricas Clave](#metricas-clave)")
+    st.sidebar.markdown("- [Matriz de Dispersión](#matriz-de-dispersion)")
+    st.sidebar.markdown("- [Análisis de NPS por Variables](#analisis-de-nps-por-variables)")
+    st.sidebar.markdown("- [Análisis de Respuestas por Centro](#analisis-de-respuestas-por-centro)")
+    st.sidebar.markdown("- [Análisis Detallado NPS Recomendar por Centro](#analisis-detallado-nps-recomendar-por-centro)")
+    st.sidebar.markdown("- [Análisis NPS y CSAT por Rol](#analisis-nps-y-csat-por-rol)")
     st.success("Contraseña correcta. Acceso concedido.")
 
 #url del archivo
@@ -193,3 +195,4 @@ fig = px.scatter(
 )
 fig.update_xaxes(type='category')
 st.plotly_chart(fig)
+
