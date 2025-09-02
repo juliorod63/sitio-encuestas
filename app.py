@@ -16,6 +16,7 @@ st.set_page_config(
     layout="wide"
 )
 
+st.sidebar.image("flag_chile.png")
 
 
 st.title("Resultados Encuesta Satisfacción Clientes Chile")
