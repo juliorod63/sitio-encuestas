@@ -184,10 +184,10 @@ fig.update_layout(
 st.plotly_chart(fig)
 
 # Grafica la distribución de NPS_Alexia para ese centro
-fig = px.histogram(df_filtrado, x="NPS_Recomendar", nbins=10, range_x=[1,10],title=f"Distribución de NPS_Recomendar en {centro_seleccionado}")
+fig = px.histogram(df_filtrado, x="NPS_Recomendar", color="Cargo", nbins=10, range_x=[1,10],title=f"Distribución de NPS_Recomendar en {centro_seleccionado}")
 st.plotly_chart(fig)
 
-fig = px.histogram(df_filtrado, x="CS_Alexia", nbins=10, range_x=[1,5], title=f"Distribución de CSAT en {centro_seleccionado}")
+fig = px.histogram(df_filtrado, x="CS_Alexia", color="Cargo", nbins=10, range_x=[1,5], title=f"Distribución de CSAT en {centro_seleccionado}")
 st.plotly_chart(fig)
 
 
