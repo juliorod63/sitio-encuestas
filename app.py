@@ -141,7 +141,7 @@ tabla_nps.columns = ["Centro", "NPS_Alexia"]
 fig = px.bar(tabla_nps, x="Centro", y="NPS_Alexia", title="NPS Alexia por Centro")
 st.plotly_chart(fig)
 
-st.markdown("### Análisis Detallado NPS Recomendar por Centro")
+st.markdown("### Análisis Detallado NPS por Centro")
 # Selector de centro
 centros_ordenados = sorted(df["Centro"].unique())
 centro_seleccionado = st.selectbox("Selecciona un centro:", centros_ordenados)
@@ -156,6 +156,32 @@ col1.metric(label="Respuestas", value=f"{df_filtrado.shape[0]}")
 col2.metric(label="NPS Recomendar", value=f"{calcular_NPS_Alexia(df_filtrado):.2f}")
 col3.metric(label="CSAT", value=f"{calcular_CSAT(df_filtrado):.2f}")
 col4.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df_filtrado):.2f}")
+
+import plotly.graph_objects as go
+
+# Supón que df_filtrado es tu DataFrame filtrado
+categorias = ["CS_Alexia", "NPS_Modulo", "NPS_Recomendar", "Satisf_Modulo", "Funcionalidad_Alexia", "Amigable_Alexia", "Capacitacion"]
+valores = [df_filtrado[c].mean() for c in categorias]
+
+fig = go.Figure(
+    data=[
+        go.Scatterpolar(
+            r=valores,
+            theta=categorias,
+            fill='toself',
+            name='Promedio'
+        )
+    ]
+)
+fig.update_layout(
+    polar=dict(
+        radialaxis=dict(visible=True, range=[0, 10])
+    ),
+    showlegend=False,
+    title="Radar de Métricas Clave"
+)
+
+st.plotly_chart(fig)
 
 # Grafica la distribución de NPS_Alexia para ese centro
 fig = px.histogram(df_filtrado, x="NPS_Recomendar", nbins=10, range_x=[1,10],title=f"Distribución de NPS_Recomendar en {centro_seleccionado}")
