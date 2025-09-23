@@ -109,6 +109,10 @@ fig = ff.create_scatterplotmatrix(df[cols], diag='box',height=800, width=800)
 st.plotly_chart(fig, use_container_width=True)
 
 
+st.markdown("### Matriz de Correlación")
+correlation_matrix = df[cols].corr()
+fig = px.imshow(correlation_matrix, text_auto=True, title="Matriz de Correlación")
+st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("### Análisis de NPS por Variables")
 # Supón que df es tu DataFrame ya cargado y transformado
@@ -189,6 +193,12 @@ st.plotly_chart(fig)
 
 fig = px.histogram(df_filtrado, x="CS_Alexia", color="Cargo", nbins=10, range_x=[1,5], title=f"Distribución de CSAT en {centro_seleccionado}")
 st.plotly_chart(fig)
+
+st.markdown("### Matriz de Correlación del Centro Seleccionado")
+correlation_matrix = df_filtrado[cols].corr()
+fig = px.imshow(correlation_matrix, text_auto=True, title="Matriz de Correlación")
+st.plotly_chart(fig, use_container_width=True)
+
 
 
 st.markdown("### NPS_Alexia por Centro")
