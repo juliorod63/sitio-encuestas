@@ -34,10 +34,12 @@ else:
     st.sidebar.markdown("- [Resultados de la Encuesta](#resultados-de-la-encuesta)")
     st.sidebar.markdown("- [Métricas Clave](#metricas-clave)")
     st.sidebar.markdown("- [Matriz de Dispersión](#matriz-de-dispersion)")
+    st.sidebar.markdown("- [Matriz de Correlación](#matriz-de-correlacion)")
     st.sidebar.markdown("- [Análisis de NPS por Variables](#analisis-de-nps-por-variables)")
     st.sidebar.markdown("- [Análisis de Respuestas por Centro](#analisis-de-respuestas-por-centro)")
     st.sidebar.markdown("- [Análisis Detallado NPS por Centro](#analisis-detallado-nps-por-centro)")
     st.sidebar.markdown("- [Análisis NPS y CSAT por Rol](#analisis-nps-y-csat-por-rol)")
+    
     st.success("Contraseña correcta. Acceso concedido.")
 
 #url del archivo
