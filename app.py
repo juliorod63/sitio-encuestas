@@ -81,7 +81,7 @@ with st.expander("¿Cómo calculamos el NPS y el CSAT?"):
     """)
 
     st.markdown("""
-    **Error Muestral: 0,0295 %**
+    **Error Muestral: 0,0295 %**\n
     Se calcula utilizando la fórmula del error estándar para proporciones:\n
     **Fórmula:**
     - Error Muestral= ± Z * s / √(n)
