@@ -61,7 +61,7 @@ st.divider()
 with st.expander("¿Cómo calculamos el NPS y el CSAT?"):
 
     st.markdown("""
-    El NPS (Net Promoter Score) se calcula restando el porcentaje de detractores del porcentaje de promotores.
+    El NPS (Net Promoter Score) se calcula restando el porcentaje de detractores del porcentaje de promotores.\n
     **Fórmula:**
     ```python
     NPS = (Promotores - Detractores) / Total de respuestas × 100
@@ -73,11 +73,22 @@ with st.expander("¿Cómo calculamos el NPS y el CSAT?"):
 
     """)
     st.markdown("""
-    El CSAT (Customer Satisfaction Score) se calcula como el porcentaje de respuestas positivas sobre el total de respuestas.
+    El CSAT (Customer Satisfaction Score) se calcula como el porcentaje de respuestas positivas sobre el total de respuestas.\n
     **Fórmula:**
     ```python
     CSAT = (Respuestas positivas / Total de respuestas) × 100
     csat = (df["CS_Alexia"].isin([4, 5]).sum() / df["CS_Alexia"].count()) * 100
+    """)
+
+    st.markdown("""
+    **Error Muestral: 0,0295 %**
+    Se calcula utilizando la fórmula del error estándar para proporciones:\n
+    **Fórmula:**
+    - Error Muestral= ± Z * s / √(n)
+    - Donde:
+      - Z es el valor crítico (1.96 para un nivel de confianza del 95%)
+      - s es la desviación estándar de las respuestas (aproximadamente 0.5 si es desconocida)
+      - n es el tamaño de la muestra
     """)
 
 col1, col2, col3, col4 = st.columns(4)
