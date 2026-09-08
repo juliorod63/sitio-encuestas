@@ -7,8 +7,69 @@ import matplotlib.pyplot as plt
 
 #nlp = spacy.load("es_core_news_sm")
 
-def load_data(file_path):
-    df = pd.read_csv(file_path, encoding='utf-8', sep=';')
+ENCUESTAS = {
+    "Encuesta 2025": {
+        "anio": 2025,
+        "url": "https://raw.githubusercontent.com/juliorod63/DATASETS/refs/heads/main/CL_Encuesta.csv",
+        "separador": ";",
+    },
+    "Encuesta 2026": {
+        "anio": 2026,
+        "url": "https://raw.githubusercontent.com/juliorod63/DATASETS/refs/heads/main/CL_Satisfaccio%CC%81n_2026.csv",
+        "separador": ",",
+    },
+}
+
+COLUMNAS_COMUNES = {
+    "Marca temporal": "Fecha",
+    "Dirección de correo electrónico": "email",
+    "Nombre y apellido": "Nombre",
+    "Nombre del establecimiento/red/corporación educacional": "Centro",
+    "¿Cuál es tu rol dentro del establecimiento/red/corporación educacional?  ": "Cargo",
+    "¿Hace cuántos años utilizas Alexia?": "Antiguedad",
+    "¿Cuál es el módulo de Alexia que más  utilizas?": "Modulo_Usado",
+    "¿Cuál es tu grado de satisfacción con el módulo seleccionado?": "Satisf_Modulo",
+    "En escala de 1 a 10 ¿Recomendarías este módulo a un amigo?": "NPS_Modulo",
+    "¿Qué tan satisfecho estás con el software Alexia?": "CS_Alexia",
+    "Si tuvieras que evaluar Alexia con nota de 1 a 5, ¿Qué nota le pondrías a las funcionalidades que cubre Alexia para realizar tu trabajo?": "Funcionalidad_Alexia",
+    "Si tuvieras que evaluar Alexia con nota de 1 a 5, ¿Qué tan amigable es Alexia para realizar las tareas que corresponden a tu rol?": "Amigable_Alexia",
+    "En una escala de 1 a 10, ¿Qué tan probable es que recomiendes Alexia a un amigo?": "NPS_Recomendar",
+    "¿Qué nos sugerirías mejorar?": "Mejoras",
+}
+
+COLUMNAS_CAPACITACION = {
+    "¿Qué tan útiles han sido los procesos de capacitación recibidos en webinars o capacitaciones personalizadas?": "Capacitacion",
+    "¿Como evaluarias los procesos de capacitación y webinars en los que has participado?": "Capacitacion",
+}
+
+COLUMNAS_2026 = {
+    "¿Qué te han parecido las mejoras implementadas (Convivencia, PIE, Nuevo Libro de Clases Digital)?": "Mejoras_Implementadas",
+    "¿Qué te parece el centro de ayuda de Alexia (manuales y videos) en caso de haberlo utilizado? * ": "Centro_Ayuda",
+    "¿Qué nota le pondrías al soporte técnico (tiempo de respuesta en tickets)": "Soporte_Tecnico",
+}
+
+COLUMNAS_NUMERICAS = [
+    "Satisf_Modulo",
+    "NPS_Modulo",
+    "Capacitacion",
+    "CS_Alexia",
+    "Funcionalidad_Alexia",
+    "Amigable_Alexia",
+    "NPS_Recomendar",
+    "Soporte_Tecnico",
+]
+
+
+def load_data(nombre_encuesta):
+    fuente = ENCUESTAS[nombre_encuesta]
+    df = pd.read_csv(
+        fuente["url"],
+        encoding="utf-8",
+        sep=fuente["separador"],
+        engine="python",
+        on_bad_lines="warn",
+    )
+    df["Anio"] = fuente["anio"]
 
     return df
 
@@ -41,9 +102,16 @@ def calcular_CSAT(df):
     
 
 def transformacion_df(df):
+    columnas = COLUMNAS_COMUNES | COLUMNAS_CAPACITACION | COLUMNAS_2026
+    df = df.rename(columns=columnas).drop(columns=["Columna 15"], errors="ignore")
 
-    df.rename(columns={df.columns[1]: "email", df.columns[2]:"Nombre", df.columns[3]:"Centro", df.columns[4]:"Cargo", df.columns[5]:"Antiguedad", df.columns[6]:"Modulo_Usado",df.columns[7]:"Satisf_Modulo",df.columns[8]:"NPS_Modulo",df.columns[9]:"Capacitacion",df.columns[10]:"CS_Alexia", df.columns[11]:"Funcionalidad_Alexia", df.columns[12]:"Amigable_Alexia",df.columns[13]:"NPS_Recomendar", df.columns[14]:"Mejoras"}, inplace=True)
-    df = df.drop(columns=[df.columns[0]])
+    faltantes = {"Centro", "Cargo", "NPS_Modulo", "CS_Alexia", "NPS_Recomendar"} - set(df.columns)
+    if faltantes:
+        raise ValueError(f"Faltan columnas requeridas en la encuesta: {', '.join(sorted(faltantes))}")
+
+    for columna in COLUMNAS_NUMERICAS:
+        if columna in df.columns:
+            df[columna] = pd.to_numeric(df[columna], errors="coerce")
 
     df["Cargo"] = df["Cargo"].str.lower().replace({
     "profesor": "Docente",

@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-from utils import load_data, transformacion_df, calcular_NPS_Alexia, calcular_NPS_Modulo, calcular_CSAT, transformar_centros, calcular_CSAT_Capacitacion
+from utils import ENCUESTAS, load_data, transformacion_df, calcular_NPS_Alexia, calcular_NPS_Modulo, calcular_CSAT, transformar_centros, calcular_CSAT_Capacitacion
 
 #nlp = spacy.load("es_core_news_sm")
 
@@ -31,6 +31,11 @@ if password_guess != st.secrets["password"]:
 else:
     st.sidebar.header("Resultados de la Encuesta")
 
+    encuesta_seleccionada = st.sidebar.selectbox(
+        "Selecciona la encuesta:",
+        options=list(ENCUESTAS),
+    )
+
     st.sidebar.markdown("- [Resultados de la Encuesta](#resultados-de-la-encuesta)")
     st.sidebar.markdown("- [Métricas Clave](#metricas-clave)")
     st.sidebar.markdown("- [Matriz de Dispersión](#matriz-de-dispersion)")
@@ -42,11 +47,9 @@ else:
     
     st.success("Contraseña correcta. Acceso concedido.")
 
-#url del archivo
-file_path = "https://raw.githubusercontent.com/juliorod63/DATASETS/refs/heads/main/CL_Encuesta.csv"
-df = load_data(file_path)
+df = load_data(encuesta_seleccionada)
 
-st.markdown("### Resultados de la Encuesta")
+st.markdown(f"### Resultados de la Encuesta {ENCUESTAS[encuesta_seleccionada]['anio']}")
 st.write(" Respuestas: ", df.shape[0])
 
 
@@ -87,7 +90,7 @@ with st.expander("¿Cómo calculamos el NPS y el CSAT?"):
     - Error Muestral= ± Z * s / √(n)
     - Donde:
       - Z es el valor crítico (1.96 para un nivel de confianza del 95%)
-      - s es la desviación estándar de las respuestas (aproximadamente 0.5 si es desconocida)
+      - s es la desviación estándar de las respuestas (calculo en base a la proporción de respuestas del NPS)
       - n es el tamaño de la muestra
     """)
 
@@ -98,6 +101,44 @@ col3.metric(label="CSAT", value=f"{calcular_CSAT(df):.2f}", help="CSAT basado en
 col4.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df):.2f}", help="CSAT basado en la satisfacción con la Capacitación")
 
 st.divider()
+
+if "Soporte_Tecnico" in df.columns:
+    st.markdown("### Evaluaciones adicionales")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.plotly_chart(
+            px.histogram(
+                df,
+                x="Soporte_Tecnico",
+                title="Evaluación del soporte técnico",
+            ),
+            use_container_width=True,
+        )
+    with col2:
+        centro_ayuda = df["Centro_Ayuda"].value_counts().reset_index()
+        centro_ayuda.columns = ["Evaluación", "Respuestas"]
+        st.plotly_chart(
+            px.bar(
+                centro_ayuda,
+                x="Evaluación",
+                y="Respuestas",
+                title="Evaluación del centro de ayuda",
+            ),
+            use_container_width=True,
+        )
+
+    mejoras_implementadas = df["Mejoras_Implementadas"].value_counts().reset_index()
+    mejoras_implementadas.columns = ["Evaluación", "Respuestas"]
+    st.plotly_chart(
+        px.bar(
+            mejoras_implementadas,
+            x="Evaluación",
+            y="Respuestas",
+            title="Evaluación de mejoras implementadas",
+        ),
+        use_container_width=True,
+    )
 
 
 st.plotly_chart(px.histogram(df, x="NPS_Recomendar", color="Cargo", title="Distribución de NPS x Cargo"))
