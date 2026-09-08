@@ -60,6 +60,16 @@ df = transformar_centros(df)
 st.dataframe(df)
 st.header("Métricas Clave")
 
+modulos = sorted(df["Modulo_Usado"].dropna().unique())
+modulo_seleccionado = st.selectbox(
+    "Filtra las métricas por módulo:",
+    options=["Todos los módulos", *modulos],
+)
+if modulo_seleccionado == "Todos los módulos":
+    df_metricas = df
+else:
+    df_metricas = df[df["Modulo_Usado"] == modulo_seleccionado]
+
 st.divider()
 with st.expander("¿Cómo calculamos el NPS y el CSAT?"):
 
@@ -95,17 +105,18 @@ with st.expander("¿Cómo calculamos el NPS y el CSAT?"):
     """)
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric(label="NPS Alexia", value=f"{calcular_NPS_Alexia(df):.2f}", help="NPS basado en la pregunta de recomendar Alexia")
-col2.metric(label="NPS Modulo", value=f"{calcular_NPS_Modulo(df):.2f}", help="NPS basado en la pregunta de recomendar el Módulo")
-col3.metric(label="CSAT", value=f"{calcular_CSAT(df):.2f}", help="CSAT basado en la satisfacción con Alexia")
-col4.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df):.2f}", help="CSAT basado en la satisfacción con la Capacitación")
+col1.metric(label="NPS Alexia", value=f"{calcular_NPS_Alexia(df_metricas):.2f}", help="NPS basado en la pregunta de recomendar Alexia")
+col2.metric(label="NPS Modulo", value=f"{calcular_NPS_Modulo(df_metricas):.2f}", help="NPS basado en la pregunta de recomendar el Módulo")
+col3.metric(label="CSAT", value=f"{calcular_CSAT(df_metricas):.2f}", help="CSAT basado en la satisfacción con Alexia")
+col4.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df_metricas):.2f}", help="CSAT basado en la satisfacción con la Capacitación")
 
-df["Segmento_NPS"] = pd.cut(
-    df["NPS_Recomendar"],
+df_metricas = df_metricas.copy()
+df_metricas["Segmento_NPS"] = pd.cut(
+    df_metricas["NPS_Recomendar"],
     bins=[-1, 6, 8, 10],
     labels=["Detractores (0-6)", "Pasivos (7-8)", "Promotores (9-10)"],
 )
-distribucion_nps = df["Segmento_NPS"].value_counts().reindex(
+distribucion_nps = df_metricas["Segmento_NPS"].value_counts().reindex(
     ["Detractores (0-6)", "Pasivos (7-8)", "Promotores (9-10)"],
     fill_value=0,
 ).reset_index()
