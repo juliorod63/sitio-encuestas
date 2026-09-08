@@ -100,6 +100,32 @@ col2.metric(label="NPS Modulo", value=f"{calcular_NPS_Modulo(df):.2f}", help="NP
 col3.metric(label="CSAT", value=f"{calcular_CSAT(df):.2f}", help="CSAT basado en la satisfacción con Alexia")
 col4.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df):.2f}", help="CSAT basado en la satisfacción con la Capacitación")
 
+df["Segmento_NPS"] = pd.cut(
+    df["NPS_Recomendar"],
+    bins=[-1, 6, 8, 10],
+    labels=["Detractores (0-6)", "Pasivos (7-8)", "Promotores (9-10)"],
+)
+distribucion_nps = df["Segmento_NPS"].value_counts().reindex(
+    ["Detractores (0-6)", "Pasivos (7-8)", "Promotores (9-10)"],
+    fill_value=0,
+).reset_index()
+distribucion_nps.columns = ["Segmento NPS", "Respuestas"]
+fig = px.bar(
+    distribucion_nps,
+    x="Segmento NPS",
+    y="Respuestas",
+    color="Segmento NPS",
+    text="Respuestas",
+    title="Distribución de NPS",
+    color_discrete_map={
+        "Detractores (0-6)": "#d62728",
+        "Pasivos (7-8)": "#ffbf00",
+        "Promotores (9-10)": "#2ca02c",
+    },
+)
+fig.update_layout(showlegend=False)
+st.plotly_chart(fig, use_container_width=True)
+
 st.divider()
 
 if "Soporte_Tecnico" in df.columns:
