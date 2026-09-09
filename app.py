@@ -33,6 +33,13 @@ else:
         "Selecciona la encuesta:",
         options=list(ENCUESTAS),
     )
+    if "version_cache_datos" not in st.session_state:
+        st.session_state["version_cache_datos"] = 0
+
+    if st.sidebar.button("Actualizar datos desde GitHub"):
+        st.session_state["version_cache_datos"] += 1
+        load_data.clear()
+        st.sidebar.success("Datos actualizados desde el origen.")
 
     st.sidebar.markdown("- [Resultados de la Encuesta](#resultados-de-la-encuesta)")
     st.sidebar.markdown("- [Métricas Clave](#metricas-clave)")
@@ -45,7 +52,7 @@ else:
     
     st.success("Contraseña correcta. Acceso concedido.")
 
-df = load_data(encuesta_seleccionada)
+df = load_data(encuesta_seleccionada, st.session_state["version_cache_datos"])
 
 st.markdown(f"### Resultados de la Encuesta {ENCUESTAS[encuesta_seleccionada]['anio']}")
 st.write(" Respuestas: ", df.shape[0])
@@ -67,6 +74,22 @@ if modulo_seleccionado == "Todos los módulos":
     df_metricas = df
 else:
     df_metricas = df[df["Modulo_Usado"] == modulo_seleccionado]
+
+roles = sorted(df_metricas["Cargo"].dropna().unique())
+rol_seleccionado = st.selectbox(
+    "Filtra las métricas por rol:",
+    options=["Todos los roles", *roles],
+)
+if rol_seleccionado != "Todos los roles":
+    df_metricas = df_metricas[df_metricas["Cargo"] == rol_seleccionado]
+
+antiguedades = sorted(df_metricas["Antiguedad"].dropna().unique())
+antiguedad_seleccionada = st.selectbox(
+    "Filtra las métricas por antigüedad de uso:",
+    options=["Todas las antigüedades", *antiguedades],
+)
+if antiguedad_seleccionada != "Todas las antigüedades":
+    df_metricas = df_metricas[df_metricas["Antiguedad"] == antiguedad_seleccionada]
 
 if "Mejoras_Implementadas" in df_metricas.columns:
     df_metricas = df_metricas.copy()

@@ -84,7 +84,7 @@ def descargar_csv(fuente):
 
 
 @st.cache_data(ttl=3600, show_spinner="Cargando datos de la encuesta...")
-def load_data(nombre_encuesta):
+def load_data(nombre_encuesta, version_cache=0):
     fuente = ENCUESTAS[nombre_encuesta]
     contenido_csv = descargar_csv(fuente)
     df = pd.read_csv(
