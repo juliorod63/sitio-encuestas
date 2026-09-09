@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
-import numpy as np
-import matplotlib.pyplot as plt
 
 
 from utils import ENCUESTAS, load_data, transformacion_df, calcular_NPS_Alexia, calcular_NPS_Modulo, calcular_CSAT, transformar_centros, calcular_CSAT_Capacitacion
@@ -70,6 +68,18 @@ if modulo_seleccionado == "Todos los módulos":
 else:
     df_metricas = df[df["Modulo_Usado"] == modulo_seleccionado]
 
+if "Mejoras_Implementadas" in df_metricas.columns:
+    df_metricas = df_metricas.copy()
+    df_metricas["Grupo_Mejoras_Implementadas"] = df_metricas["Mejoras_Implementadas"].fillna("Sin respuesta")
+    grupos_mejoras = sorted(df_metricas["Grupo_Mejoras_Implementadas"].unique())
+    grupos_mejoras_seleccionados = st.multiselect(
+        "Filtra las métricas por evaluación de mejoras implementadas:",
+        options=["Todas las evaluaciones", *grupos_mejoras],
+        default=["Todas las evaluaciones"],
+    )
+    if grupos_mejoras_seleccionados and "Todas las evaluaciones" not in grupos_mejoras_seleccionados:
+        df_metricas = df_metricas[df_metricas["Grupo_Mejoras_Implementadas"].isin(grupos_mejoras_seleccionados)]
+
 st.divider()
 with st.expander("¿Cómo calculamos el NPS y el CSAT?"):
 
@@ -104,11 +114,12 @@ with st.expander("¿Cómo calculamos el NPS y el CSAT?"):
       - n es el tamaño de la muestra
     """)
 
-col1, col2, col3, col4 = st.columns(4)
-col1.metric(label="NPS Alexia", value=f"{calcular_NPS_Alexia(df_metricas):.2f}", help="NPS basado en la pregunta de recomendar Alexia")
-col2.metric(label="NPS Modulo", value=f"{calcular_NPS_Modulo(df_metricas):.2f}", help="NPS basado en la pregunta de recomendar el Módulo")
-col3.metric(label="CSAT", value=f"{calcular_CSAT(df_metricas):.2f}", help="CSAT basado en la satisfacción con Alexia")
-col4.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df_metricas):.2f}", help="CSAT basado en la satisfacción con la Capacitación")
+col1, col2, col3, col4, col5 = st.columns(5)
+col1.metric(label="Respuestas", value=f"{df_metricas.shape[0]}", help="Cantidad de respuestas incluidas en los filtros de métricas")
+col2.metric(label="NPS Alexia", value=f"{calcular_NPS_Alexia(df_metricas):.2f}", help="NPS basado en la pregunta de recomendar Alexia")
+col3.metric(label="NPS Modulo", value=f"{calcular_NPS_Modulo(df_metricas):.2f}", help="NPS basado en la pregunta de recomendar el Módulo")
+col4.metric(label="CSAT", value=f"{calcular_CSAT(df_metricas):.2f}", help="CSAT basado en la satisfacción con Alexia")
+col5.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df_metricas):.2f}", help="CSAT basado en la satisfacción con la Capacitación")
 
 df_metricas = df_metricas.copy()
 df_metricas["Segmento_NPS"] = pd.cut(

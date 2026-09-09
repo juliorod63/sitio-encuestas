@@ -1,9 +1,11 @@
+from io import StringIO
+import time
+
 import pandas as pd
+import requests
 import streamlit as st
-import matplotlib.pyplot as plt
 #import spacy
 from wordcloud import WordCloud
-import matplotlib.pyplot as plt
 
 #nlp = spacy.load("es_core_news_sm")
 
@@ -11,11 +13,13 @@ ENCUESTAS = {
     "Encuesta 2025": {
         "anio": 2025,
         "url": "https://raw.githubusercontent.com/juliorod63/DATASETS/refs/heads/main/CL_Encuesta.csv",
+        "url_respaldo": "https://cdn.jsdelivr.net/gh/juliorod63/DATASETS@main/CL_Encuesta.csv",
         "separador": ";",
     },
     "Encuesta 2026": {
         "anio": 2026,
         "url": "https://raw.githubusercontent.com/juliorod63/DATASETS/refs/heads/main/CL_Satisfaccio%CC%81n_2026.csv",
+        "url_respaldo": "https://cdn.jsdelivr.net/gh/juliorod63/DATASETS@main/CL_Satisfaccio%CC%81n_2026.csv",
         "separador": ",",
     },
 }
@@ -60,10 +64,31 @@ COLUMNAS_NUMERICAS = [
 ]
 
 
+def descargar_csv(fuente):
+    urls = [fuente["url"], fuente.get("url_respaldo")]
+    urls = [url for url in urls if url]
+    ultimo_error = None
+
+    for url in urls:
+        for intento in range(3):
+            try:
+                response = requests.get(url, headers={"User-Agent": "sitio-encuestas-streamlit"}, timeout=20)
+                response.raise_for_status()
+                return response.text
+            except requests.RequestException as error:
+                ultimo_error = error
+                if intento < 2:
+                    time.sleep(0.75 * (intento + 1))
+
+    raise RuntimeError(f"No se pudo descargar la encuesta. Último error: {ultimo_error}")
+
+
+@st.cache_data(ttl=3600, show_spinner="Cargando datos de la encuesta...")
 def load_data(nombre_encuesta):
     fuente = ENCUESTAS[nombre_encuesta]
+    contenido_csv = descargar_csv(fuente)
     df = pd.read_csv(
-        fuente["url"],
+        StringIO(contenido_csv),
         encoding="utf-8",
         sep=fuente["separador"],
         engine="python",
