@@ -40,6 +40,55 @@ def mostrar_metrica(columna, etiqueta, valor, comparativa_2025=None, ayuda=None)
             unsafe_allow_html=True,
         )
 
+
+PUNTAJES_NPS = list(range(0, 11))
+PUNTAJES_CSAT = list(range(1, 6))
+
+
+def preparar_distribucion_puntajes(datos, columna, puntajes, grupo=None):
+    base = datos.copy()
+    base[columna] = pd.to_numeric(base[columna], errors="coerce")
+    base = base[base[columna].isin(puntajes)].copy()
+    base["Puntaje"] = base[columna].astype(int)
+
+    if grupo is None:
+        return base["Puntaje"].value_counts().reindex(puntajes, fill_value=0).rename_axis("Puntaje").reset_index(name="Respuestas")
+
+    base[grupo] = base[grupo].fillna("Sin dato")
+    grupos = sorted(base[grupo].unique())
+    indice = pd.MultiIndex.from_product([puntajes, grupos], names=["Puntaje", grupo])
+    return base.groupby(["Puntaje", grupo]).size().reindex(indice, fill_value=0).reset_index(name="Respuestas")
+
+
+def grafico_distribucion_puntajes(datos, columna, titulo, puntajes, grupo=None, color=None):
+    distribucion = preparar_distribucion_puntajes(datos, columna, puntajes, grupo)
+    grafico = px.bar(
+        distribucion,
+        x="Puntaje",
+        y="Respuestas",
+        color=grupo,
+        text="Respuestas",
+        title=titulo,
+    )
+    if grupo is None and color:
+        grafico.update_traces(marker_color=color)
+    grafico.update_xaxes(
+        type="category",
+        categoryorder="array",
+        categoryarray=puntajes,
+        tickmode="array",
+        tickvals=puntajes,
+    )
+    return grafico
+
+
+def grafico_distribucion_puntajes_nps(datos, columna, titulo, grupo=None):
+    return grafico_distribucion_puntajes(datos, columna, titulo, PUNTAJES_NPS, grupo, "#38bdf8")
+
+
+def grafico_distribucion_puntajes_csat(datos, columna, titulo, grupo=None):
+    return grafico_distribucion_puntajes(datos, columna, titulo, PUNTAJES_CSAT, grupo, "#38bdf8")
+
 st.set_page_config(
     page_title="Resultados Encuesta Satisfacción Clientes Chile",
     page_icon=":bar_chart:",
@@ -121,8 +170,11 @@ grupo_educativo_seleccionado = st.selectbox(
     "Filtra las métricas por grupo educativo:",
     options=["Todos los grupos educativos", *grupos_educativos],
 )
+centros_grupo_educativo = None
 if grupo_educativo_seleccionado != "Todos los grupos educativos":
     df_metricas = df_metricas[df_metricas["Grupo_Educativo"] == grupo_educativo_seleccionado]
+    centros_grupo_educativo = df_metricas["Centro"].value_counts().reset_index()
+    centros_grupo_educativo.columns = ["Centro", "Respuestas"]
     if df_comparativa_2025 is not None:
         df_comparativa_2025 = df_comparativa_2025[df_comparativa_2025["Grupo_Educativo"] == grupo_educativo_seleccionado]
 
@@ -236,16 +288,12 @@ fig = px.bar(
 fig.update_layout(showlegend=False)
 st.plotly_chart(fig, use_container_width=True)
 
-fig = px.histogram(
-    df_metricas,
-    x="NPS_Recomendar",
-    nbins=11,
-    range_x=[0, 10],
-    title="Histograma de NPS Recomendar",
-)
-fig.update_traces(marker_color="#38bdf8")
-fig.update_xaxes(dtick=1)
+fig = grafico_distribucion_puntajes_nps(df_metricas, "NPS_Recomendar", "Histograma de NPS Recomendar")
 st.plotly_chart(fig, use_container_width=True)
+
+if centros_grupo_educativo is not None:
+    st.markdown(f"#### Centros incluidos en {grupo_educativo_seleccionado}")
+    st.dataframe(centros_grupo_educativo, use_container_width=True)
 
 st.divider()
 
@@ -340,8 +388,18 @@ st.markdown("### Análisis de Respuestas por Grupo Educativo")
 st.info("Sección preparada para incorporar el análisis por grupo educativo.")
 
 st.markdown("### Análisis Detallado por Centro")
+grupos_detalle = sorted(df["Grupo_Educativo"].dropna().unique())
+grupo_detalle_seleccionado = st.selectbox(
+    "Filtra el análisis detallado por grupo educativo:",
+    options=["Todos los grupos educativos", *grupos_detalle],
+)
+if grupo_detalle_seleccionado == "Todos los grupos educativos":
+    df_detalle = df
+else:
+    df_detalle = df[df["Grupo_Educativo"] == grupo_detalle_seleccionado]
+
 # Selector de centro
-centros_ordenados = sorted(df["Centro"].unique())
+centros_ordenados = sorted(df_detalle["Centro"].unique())
 centros_seleccionados = st.multiselect(
     "Selecciona uno o más centros:",
     centros_ordenados,
@@ -351,7 +409,7 @@ if not centros_seleccionados:
     st.info("Sin centros seleccionados: se muestran todos los centros.")
 
 # Filtra el DataFrame por los centros seleccionados
-df_filtrado = df[df["Centro"].isin(centros_seleccionados)]
+df_filtrado = df_detalle[df_detalle["Centro"].isin(centros_seleccionados)]
 st.divider()
 
 col1, col2, col3, col4, col5 = st.columns(5)
@@ -392,10 +450,10 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 # Grafica la distribución de NPS_Alexia para ese centro
-fig = px.histogram(df_filtrado, x="NPS_Recomendar", color="Cargo", nbins=10, range_x=[1,10],title="Distribución de NPS_Recomendar en centros seleccionados")
+fig = grafico_distribucion_puntajes_nps(df_filtrado, "NPS_Recomendar", "Distribución de NPS_Recomendar en centros seleccionados", "Cargo")
 st.plotly_chart(fig)
 
-fig = px.histogram(df_filtrado, x="CS_Alexia", color="Cargo", nbins=10, range_x=[1,5], title="Distribución de CSAT Alexia en centros seleccionados")
+fig = grafico_distribucion_puntajes_csat(df_filtrado, "CS_Alexia", "Distribución de CSAT Alexia en centros seleccionados", "Cargo")
 st.plotly_chart(fig)
 
 st.markdown("### Matriz de Correlación de Centros Seleccionados")
@@ -421,19 +479,19 @@ else:
     st.plotly_chart(fig, use_container_width=True)
 
 
-st.plotly_chart(px.histogram(df, x="NPS_Recomendar", color="Cargo", title="Distribución de NPS x Cargo"))
+st.plotly_chart(grafico_distribucion_puntajes_nps(df_filtrado, "NPS_Recomendar", "Distribución de NPS x Cargo en centros seleccionados", "Cargo"))
 
-st.plotly_chart(px.histogram(df, x="NPS_Recomendar", color="Modulo_Usado", title="Distribución de NPS x Modulo"))
+st.plotly_chart(grafico_distribucion_puntajes_nps(df_filtrado, "NPS_Recomendar", "Distribución de NPS x Modulo en centros seleccionados", "Modulo_Usado"))
 
-st.plotly_chart(px.histogram(df, x="CS_Alexia", color="Modulo_Usado", title="Distribución de CS x Modulo"))
+st.plotly_chart(grafico_distribucion_puntajes_csat(df_filtrado, "CS_Alexia", "Distribución de CSAT Alexia x Modulo en centros seleccionados", "Modulo_Usado"))
 
-st.plotly_chart(px.histogram(df, x="Cargo", color="Modulo_Usado", title="Distribución x Cargo x Modulo"))
+st.plotly_chart(px.histogram(df_filtrado, x="Cargo", color="Modulo_Usado", title="Distribución x Cargo x Modulo en centros seleccionados"))
 
-st.plotly_chart(px.histogram(df, x="NPS_Modulo", color="Antiguedad", title="Distribución por NPS Modulo y Antiguedad"))
+st.plotly_chart(grafico_distribucion_puntajes_nps(df_filtrado, "NPS_Modulo", "Distribución por NPS Modulo y Antiguedad en centros seleccionados", "Antiguedad"))
 
-st.plotly_chart(px.histogram(df, x="Funcionalidad_Alexia", color="Cargo", title="Distribución por Funcionalidad y Cargo"))
+st.plotly_chart(grafico_distribucion_puntajes_csat(df_filtrado, "Funcionalidad_Alexia", "Distribución por Funcionalidad y Cargo en centros seleccionados", "Cargo"))
 
-st.plotly_chart(px.histogram(df, x="Amigable_Alexia", color="Cargo", title="Distribución por Amigable y Cargo"))
+st.plotly_chart(grafico_distribucion_puntajes_csat(df_filtrado, "Amigable_Alexia", "Distribución por Amigable y Cargo en centros seleccionados", "Cargo"))
 
 
 st.markdown("### Análisis de NPS por Variables")
@@ -443,30 +501,32 @@ variables = ["Cargo", "Antiguedad", "Centro", "Modulo_Usado"]  # agrega las vari
 opcion = st.selectbox("Selecciona una variable para analizar NPS_Recomendacion:", variables)
 
 # Gráfico de distribución de NPS_Recomendacion según la variable seleccionada
-fig = px.violin(df, x=opcion, y="NPS_Recomendar", title=f"NPS_Recomendacion según {opcion}")
+fig = px.violin(df_filtrado, x=opcion, y="NPS_Recomendar", title=f"NPS_Recomendacion según {opcion} en centros seleccionados")
 st.plotly_chart(fig)
 
-fig = px.violin(df, x=opcion, y="CS_Alexia", title=f"Satifaccion Alexia según {opcion}")
+fig = px.violin(df_filtrado, x=opcion, y="CS_Alexia", title=f"Satifaccion Alexia según {opcion} en centros seleccionados")
 st.plotly_chart(fig)
 
 st.markdown("### NPS_Alexia por Centro")
-st.dataframe(tabla_nps)
+tabla_nps_seleccionados = df_filtrado.groupby("Centro", group_keys=False).apply(calcular_NPS_Alexia).reset_index()
+tabla_nps_seleccionados.columns = ["Centro", "NPS_Alexia"]
+st.dataframe(tabla_nps_seleccionados)
 
 st.markdown("### Análisis NPS y CSAT por Rol"  )
-tabla_nps_rol = df.groupby("Cargo", group_keys=False).apply(calcular_NPS_Alexia).reset_index()
+tabla_nps_rol = df_filtrado.groupby("Cargo", group_keys=False).apply(calcular_NPS_Alexia).reset_index()
 tabla_nps_rol.columns = ["Cargo", "NPS_Alexia"]
 
 fig = px.bar(tabla_nps_rol, x="Cargo", y="NPS_Alexia", title="NPS Alexia por Cargo")
 st.plotly_chart(fig)
 
-tabla_csat_rol = df.groupby("Cargo", group_keys=False).apply(calcular_CSAT).reset_index()
+tabla_csat_rol = df_filtrado.groupby("Cargo", group_keys=False).apply(calcular_CSAT).reset_index()
 tabla_csat_rol.columns = ["Cargo", "CSAT_Alexia"]
 
 fig = px.bar(tabla_csat_rol, x="Cargo", y="CSAT_Alexia", title="CSAT Alexia por Cargo")
 st.plotly_chart(fig)
 
 # Agrupar y calcular promedio CSAT
-df_burbujas = df.groupby(['Cargo', 'Antiguedad'], as_index=False)['CS_Alexia'].mean()
+df_burbujas = df_filtrado.groupby(['Cargo', 'Antiguedad'], as_index=False)['CS_Alexia'].mean()
 df_burbujas.rename(columns={'CS_Alexia': 'CSAT_promedio'}, inplace=True)
 
 fig = px.scatter(
