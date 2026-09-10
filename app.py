@@ -75,6 +75,14 @@ if modulo_seleccionado == "Todos los módulos":
 else:
     df_metricas = df[df["Modulo_Usado"] == modulo_seleccionado]
 
+grupos_educativos = sorted(df_metricas["Grupo_Educativo"].dropna().unique())
+grupo_educativo_seleccionado = st.selectbox(
+    "Filtra las métricas por grupo educativo:",
+    options=["Todos los grupos educativos", *grupos_educativos],
+)
+if grupo_educativo_seleccionado != "Todos los grupos educativos":
+    df_metricas = df_metricas[df_metricas["Grupo_Educativo"] == grupo_educativo_seleccionado]
+
 roles = sorted(df_metricas["Cargo"].dropna().unique())
 rol_seleccionado = st.selectbox(
     "Filtra las métricas por rol:",
@@ -141,7 +149,7 @@ col1, col2, col3, col4, col5 = st.columns(5)
 col1.metric(label="Respuestas", value=f"{df_metricas.shape[0]}", help="Cantidad de respuestas incluidas en los filtros de métricas")
 col2.metric(label="NPS Alexia", value=f"{calcular_NPS_Alexia(df_metricas):.2f}", help="NPS basado en la pregunta de recomendar Alexia")
 col3.metric(label="NPS Modulo", value=f"{calcular_NPS_Modulo(df_metricas):.2f}", help="NPS basado en la pregunta de recomendar el Módulo")
-col4.metric(label="CSAT", value=f"{calcular_CSAT(df_metricas):.2f}", help="CSAT basado en la satisfacción con Alexia")
+col4.metric(label="CSAT Alexia", value=f"{calcular_CSAT(df_metricas):.2f}", help="CSAT basado en la satisfacción general con Alexia")
 col5.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df_metricas):.2f}", help="CSAT basado en la satisfacción con la Capacitación")
 
 df_metricas = df_metricas.copy()
@@ -283,7 +291,7 @@ col1, col2, col3, col4, col5 = st.columns(5)
 col1.metric(label="Respuestas", value=f"{df_filtrado.shape[0]}")
 col2.metric(label="NPS Recomendar", value=f"{calcular_NPS_Alexia(df_filtrado):.2f}")
 col3.metric(label="NPS Modulo", value=f"{calcular_NPS_Modulo(df_filtrado):.2f}")
-col4.metric(label="CSAT", value=f"{calcular_CSAT(df_filtrado):.2f}")
+col4.metric(label="CSAT Alexia", value=f"{calcular_CSAT(df_filtrado):.2f}")
 col5.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df_filtrado):.2f}")
 
 import plotly.graph_objects as go
@@ -319,18 +327,26 @@ st.plotly_chart(fig, use_container_width=True)
 fig = px.histogram(df_filtrado, x="NPS_Recomendar", color="Cargo", nbins=10, range_x=[1,10],title="Distribución de NPS_Recomendar en centros seleccionados")
 st.plotly_chart(fig)
 
-fig = px.histogram(df_filtrado, x="CS_Alexia", color="Cargo", nbins=10, range_x=[1,5], title="Distribución de CSAT en centros seleccionados")
+fig = px.histogram(df_filtrado, x="CS_Alexia", color="Cargo", nbins=10, range_x=[1,5], title="Distribución de CSAT Alexia en centros seleccionados")
 st.plotly_chart(fig)
 
 st.markdown("### Matriz de Correlación de Centros Seleccionados")
+min_respuestas_correlacion = 3
 columnas_correlacion = [
     columna
     for columna in cols
-    if df_filtrado[columna].count() >= 2 and df_filtrado[columna].nunique(dropna=True) > 1
+    if df_filtrado[columna].count() >= min_respuestas_correlacion and df_filtrado[columna].nunique(dropna=True) > 1
 ]
-if len(columnas_correlacion) < 2:
-    st.warning("Selecciona centros con al menos dos respuestas y variación en las métricas para calcular la correlación.")
+if df_filtrado.shape[0] < min_respuestas_correlacion:
+    st.warning(
+        f"La matriz de correlación necesita al menos {min_respuestas_correlacion} respuestas. "
+        f"La selección actual tiene {df_filtrado.shape[0]}."
+    )
+elif len(columnas_correlacion) < 2:
+    st.warning("La selección actual no tiene suficiente variación en al menos dos métricas para calcular la correlación.")
 else:
+    if df_filtrado.shape[0] < 10:
+        st.info("La selección tiene menos de 10 respuestas; interpreta la correlación como una señal exploratoria.")
     correlation_matrix = df_filtrado[columnas_correlacion].corr()
     fig = px.imshow(correlation_matrix, text_auto=True, title="Matriz de Correlación de Centros Seleccionados")
     fig.update_layout(height=750)
@@ -376,9 +392,9 @@ fig = px.bar(tabla_nps_rol, x="Cargo", y="NPS_Alexia", title="NPS Alexia por Car
 st.plotly_chart(fig)
 
 tabla_csat_rol = df.groupby("Cargo", group_keys=False).apply(calcular_CSAT).reset_index()
-tabla_csat_rol.columns = ["Cargo", "CSAT"]
+tabla_csat_rol.columns = ["Cargo", "CSAT_Alexia"]
 
-fig = px.bar(tabla_csat_rol, x="Cargo", y="CSAT", title="CSAT por Cargo")
+fig = px.bar(tabla_csat_rol, x="Cargo", y="CSAT_Alexia", title="CSAT Alexia por Cargo")
 st.plotly_chart(fig)
 
 # Agrupar y calcular promedio CSAT

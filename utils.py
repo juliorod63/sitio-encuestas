@@ -50,6 +50,7 @@ COLUMNAS_2026 = {
     "¿Qué te han parecido las mejoras implementadas (Convivencia, PIE, Nuevo Libro de Clases Digital)?": "Mejoras_Implementadas",
     "¿Qué te parece el centro de ayuda de Alexia (manuales y videos) en caso de haberlo utilizado? * ": "Centro_Ayuda",
     "¿Qué nota le pondrías al soporte técnico (tiempo de respuesta en tickets)": "Soporte_Tecnico",
+    "CORPORACION": "Grupo_Educativo",
 }
 
 COLUMNAS_NUMERICAS = [
@@ -64,7 +65,7 @@ COLUMNAS_NUMERICAS = [
 ]
 
 
-def descargar_csv(fuente):
+def descargar_csv(fuente, version_cache=0):
     urls = [fuente["url"], fuente.get("url_respaldo")]
     urls = [url for url in urls if url]
     ultimo_error = None
@@ -72,7 +73,14 @@ def descargar_csv(fuente):
     for url in urls:
         for intento in range(3):
             try:
-                response = requests.get(url, headers={"User-Agent": "sitio-encuestas-streamlit"}, timeout=20)
+                response = requests.get(
+                    url,
+                    headers={
+                        "User-Agent": "sitio-encuestas-streamlit",
+                        "X-Cache-Version": str(version_cache),
+                    },
+                    timeout=20,
+                )
                 response.raise_for_status()
                 return response.text
             except requests.RequestException as error:
@@ -86,7 +94,7 @@ def descargar_csv(fuente):
 @st.cache_data(ttl=3600, show_spinner="Cargando datos de la encuesta...")
 def load_data(nombre_encuesta, version_cache=0):
     fuente = ENCUESTAS[nombre_encuesta]
-    contenido_csv = descargar_csv(fuente)
+    contenido_csv = descargar_csv(fuente, version_cache)
     df = pd.read_csv(
         StringIO(contenido_csv),
         encoding="utf-8",
@@ -137,6 +145,13 @@ def transformacion_df(df):
     for columna in COLUMNAS_NUMERICAS:
         if columna in df.columns:
             df[columna] = pd.to_numeric(df[columna], errors="coerce")
+
+    if "Grupo_Educativo" not in df.columns:
+        df["Grupo_Educativo"] = "Stand Alone"
+    else:
+        df["Grupo_Educativo"] = df["Grupo_Educativo"].fillna("").astype(str).str.strip()
+        df["Grupo_Educativo"] = df["Grupo_Educativo"].replace("", "Stand Alone")
+    df["Grupo_Educativo"] = df["Grupo_Educativo"].str.title()
 
     df["Cargo"] = df["Cargo"].str.lower().replace({
     "profesor": "Docente",
