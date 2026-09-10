@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.figure_factory as ff
 
 
 from utils import ENCUESTAS, load_data, transformacion_df, calcular_NPS_Alexia, calcular_NPS_Modulo, calcular_CSAT, transformar_centros, calcular_CSAT_Capacitacion
@@ -43,11 +42,12 @@ else:
 
     st.sidebar.markdown("- [Resultados de la Encuesta](#resultados-de-la-encuesta)")
     st.sidebar.markdown("- [Métricas Clave](#metricas-clave)")
-    st.sidebar.markdown("- [Matriz de Dispersión](#matriz-de-dispersion)")
-    st.sidebar.markdown("- [Matriz de Correlación](#matriz-de-correlacion)")
-    st.sidebar.markdown("- [Análisis de NPS por Variables](#analisis-de-nps-por-variables)")
+    st.sidebar.markdown("- [Evaluaciones adicionales](#evaluaciones-adicionales)")
     st.sidebar.markdown("- [Análisis de Respuestas por Centro](#analisis-de-respuestas-por-centro)")
-    st.sidebar.markdown("- [Análisis Detallado NPS por Centro](#analisis-detallado-nps-por-centro)")
+    st.sidebar.markdown("- [Análisis de Respuestas por Grupo Educativo](#analisis-de-respuestas-por-grupo-educativo)")
+    st.sidebar.markdown("- [Análisis Detallado por Centro](#analisis-detallado-por-centro)")
+    st.sidebar.markdown("- [Matriz de Correlación de Centros Seleccionados](#matriz-de-correlacion-de-centros-seleccionados)")
+    st.sidebar.markdown("- [Análisis de NPS por Variables](#analisis-de-nps-por-variables)")
     st.sidebar.markdown("- [Análisis NPS y CSAT por Rol](#analisis-nps-y-csat-por-rol)")
     
     st.success("Contraseña correcta. Acceso concedido.")
@@ -173,11 +173,14 @@ st.plotly_chart(fig, use_container_width=True)
 
 st.divider()
 
-if "Soporte_Tecnico" in df.columns:
+# Selecciona las columnas numéricas que quieres comparar
+cols = ["CS_Alexia", "NPS_Modulo", "NPS_Recomendar", "Satisf_Modulo", "Funcionalidad_Alexia", "Amigable_Alexia", "Capacitacion"]  # ajusta según tus datos
+
+columnas_adicionales = ["Soporte_Tecnico", "Centro_Ayuda", "Mejoras_Implementadas"]
+if any(columna in df.columns for columna in columnas_adicionales):
     st.markdown("### Evaluaciones adicionales")
 
-    col1, col2 = st.columns(2)
-    with col1:
+    if "Soporte_Tecnico" in df.columns:
         st.plotly_chart(
             px.histogram(
                 df,
@@ -186,7 +189,8 @@ if "Soporte_Tecnico" in df.columns:
             ),
             use_container_width=True,
         )
-    with col2:
+
+    if "Centro_Ayuda" in df.columns:
         centro_ayuda = df["Centro_Ayuda"].value_counts().reset_index()
         centro_ayuda.columns = ["Evaluación", "Respuestas"]
         st.plotly_chart(
@@ -199,58 +203,18 @@ if "Soporte_Tecnico" in df.columns:
             use_container_width=True,
         )
 
-    mejoras_implementadas = df["Mejoras_Implementadas"].value_counts().reset_index()
-    mejoras_implementadas.columns = ["Evaluación", "Respuestas"]
-    st.plotly_chart(
-        px.bar(
-            mejoras_implementadas,
-            x="Evaluación",
-            y="Respuestas",
-            title="Evaluación de mejoras implementadas",
-        ),
-        use_container_width=True,
-    )
-
-
-st.plotly_chart(px.histogram(df, x="NPS_Recomendar", color="Cargo", title="Distribución de NPS x Cargo"))
-
-st.plotly_chart(px.histogram(df, x="NPS_Recomendar", color="Modulo_Usado", title="Distribución de NPS x Modulo"))
-
-st.plotly_chart(px.histogram(df, x="CS_Alexia", color="Modulo_Usado", title="Distribución de CS x Modulo"))
-
-st.plotly_chart(px.histogram(df, x="Cargo", color="Modulo_Usado", title="Distribución x Cargo x Modulo"))
-
-st.plotly_chart(px.histogram(df, x="NPS_Modulo", color="Antiguedad", title="Distribución por NPS Modulo y Antiguedad"))
-
-st.plotly_chart(px.histogram(df, x="Funcionalidad_Alexia", color="Cargo", title="Distribución por Funcionalidad y Cargo"))
-
-st.plotly_chart(px.histogram(df, x="Amigable_Alexia", color="Cargo", title="Distribución por Amigable y Cargo"))
-
-# Selecciona las columnas numéricas que quieres comparar
-cols = ["CS_Alexia", "NPS_Modulo", "NPS_Recomendar", "Satisf_Modulo", "Funcionalidad_Alexia", "Amigable_Alexia", "Capacitacion"]  # ajusta según tus datos
-
-st.markdown("### Matriz de Dispersión")
-fig = ff.create_scatterplotmatrix(df[cols], diag='box',height=800, width=800)
-st.plotly_chart(fig, use_container_width=True)
-
-
-st.markdown("### Matriz de Correlación")
-correlation_matrix = df[cols].corr()
-fig = px.imshow(correlation_matrix, text_auto=True, title="Matriz de Correlación")
-st.plotly_chart(fig, use_container_width=True)
-
-st.markdown("### Análisis de NPS por Variables")
-# Supón que df es tu DataFrame ya cargado y transformado
-variables = ["Cargo", "Antiguedad", "Centro", "Modulo_Usado"]  # agrega las variables que quieras analizar
-
-opcion = st.selectbox("Selecciona una variable para analizar NPS_Recomendacion:", variables)
-
-# Gráfico de distribución de NPS_Recomendacion según la variable seleccionada
-fig = px.violin(df, x=opcion, y="NPS_Recomendar", title=f"NPS_Recomendacion según {opcion}")
-st.plotly_chart(fig)
-
-fig = px.violin(df, x=opcion, y="CS_Alexia", title=f"Satifaccion Alexia según {opcion}")
-st.plotly_chart(fig)
+    if "Mejoras_Implementadas" in df.columns:
+        mejoras_implementadas = df["Mejoras_Implementadas"].value_counts().reset_index()
+        mejoras_implementadas.columns = ["Evaluación", "Respuestas"]
+        st.plotly_chart(
+            px.bar(
+                mejoras_implementadas,
+                x="Evaluación",
+                y="Respuestas",
+                title="Evaluación de mejoras implementadas",
+            ),
+            use_container_width=True,
+        )
 
 st.markdown("### Análisis de Respuestas por Centro")
 
@@ -270,21 +234,57 @@ tabla_nps.columns = ["Centro", "NPS_Alexia"]
 fig = px.bar(tabla_nps, x="Centro", y="NPS_Alexia", title="NPS Alexia por Centro")
 st.plotly_chart(fig)
 
-st.markdown("### Análisis Detallado NPS por Centro")
+tabla_nps["Clasificación NPS"] = pd.cut(
+    tabla_nps["NPS_Alexia"],
+    bins=[-101, -0.0001, 0.0001, 100],
+    labels=["Negativo", "Neutro", "Positivo"],
+)
+resumen_nps_centros = tabla_nps["Clasificación NPS"].value_counts().reindex(
+    ["Positivo", "Neutro", "Negativo"],
+    fill_value=0,
+).reset_index()
+resumen_nps_centros.columns = ["Clasificación NPS", "Centros"]
+fig = px.bar(
+    resumen_nps_centros,
+    x="Clasificación NPS",
+    y="Centros",
+    color="Clasificación NPS",
+    text="Centros",
+    title="Cantidad de centros por clasificación NPS",
+    color_discrete_map={
+        "Positivo": "#2ca02c",
+        "Neutro": "#ffbf00",
+        "Negativo": "#d62728",
+    },
+)
+fig.update_layout(showlegend=False)
+st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("### Análisis de Respuestas por Grupo Educativo")
+st.info("Sección preparada para incorporar el análisis por grupo educativo.")
+
+st.markdown("### Análisis Detallado por Centro")
 # Selector de centro
 centros_ordenados = sorted(df["Centro"].unique())
-centro_seleccionado = st.selectbox("Selecciona un centro:", centros_ordenados)
+centros_seleccionados = st.multiselect(
+    "Selecciona uno o más centros:",
+    centros_ordenados,
+)
+if not centros_seleccionados:
+    centros_seleccionados = centros_ordenados
+    st.info("Sin centros seleccionados: se muestran todos los centros.")
 
-# Filtra el DataFrame por el centro seleccionado
-df_filtrado = df[df["Centro"] == centro_seleccionado]
+# Filtra el DataFrame por los centros seleccionados
+df_filtrado = df[df["Centro"].isin(centros_seleccionados)]
 st.divider()
 
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4, col5 = st.columns(5)
 
 col1.metric(label="Respuestas", value=f"{df_filtrado.shape[0]}")
 col2.metric(label="NPS Recomendar", value=f"{calcular_NPS_Alexia(df_filtrado):.2f}")
-col3.metric(label="CSAT", value=f"{calcular_CSAT(df_filtrado):.2f}")
-col4.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df_filtrado):.2f}")
+col3.metric(label="NPS Modulo", value=f"{calcular_NPS_Modulo(df_filtrado):.2f}")
+col4.metric(label="CSAT", value=f"{calcular_CSAT(df_filtrado):.2f}")
+col5.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df_filtrado):.2f}")
 
 import plotly.graph_objects as go
 
@@ -304,27 +304,66 @@ fig = go.Figure(
 )
 fig.update_layout(
     polar=dict(
-        radialaxis=dict(visible=True, range=[0, 10])
+        radialaxis=dict(visible=True, range=[0, 10]),
+        domain=dict(x=[0.05, 0.95], y=[0.05, 0.95])
     ),
+    height=700,
+    margin=dict(l=80, r=80, t=80, b=80),
     showlegend=False,
     title="Radar de Métricas Clave"
 )
 
-st.plotly_chart(fig)
-
-# Grafica la distribución de NPS_Alexia para ese centro
-fig = px.histogram(df_filtrado, x="NPS_Recomendar", color="Cargo", nbins=10, range_x=[1,10],title=f"Distribución de NPS_Recomendar en {centro_seleccionado}")
-st.plotly_chart(fig)
-
-fig = px.histogram(df_filtrado, x="CS_Alexia", color="Cargo", nbins=10, range_x=[1,5], title=f"Distribución de CSAT en {centro_seleccionado}")
-st.plotly_chart(fig)
-
-st.markdown("### Matriz de Correlación del Centro Seleccionado")
-correlation_matrix = df_filtrado[cols].corr()
-fig = px.imshow(correlation_matrix, text_auto=True, title="Matriz de Correlación")
 st.plotly_chart(fig, use_container_width=True)
 
+# Grafica la distribución de NPS_Alexia para ese centro
+fig = px.histogram(df_filtrado, x="NPS_Recomendar", color="Cargo", nbins=10, range_x=[1,10],title="Distribución de NPS_Recomendar en centros seleccionados")
+st.plotly_chart(fig)
 
+fig = px.histogram(df_filtrado, x="CS_Alexia", color="Cargo", nbins=10, range_x=[1,5], title="Distribución de CSAT en centros seleccionados")
+st.plotly_chart(fig)
+
+st.markdown("### Matriz de Correlación de Centros Seleccionados")
+columnas_correlacion = [
+    columna
+    for columna in cols
+    if df_filtrado[columna].count() >= 2 and df_filtrado[columna].nunique(dropna=True) > 1
+]
+if len(columnas_correlacion) < 2:
+    st.warning("Selecciona centros con al menos dos respuestas y variación en las métricas para calcular la correlación.")
+else:
+    correlation_matrix = df_filtrado[columnas_correlacion].corr()
+    fig = px.imshow(correlation_matrix, text_auto=True, title="Matriz de Correlación de Centros Seleccionados")
+    fig.update_layout(height=750)
+    st.plotly_chart(fig, use_container_width=True)
+
+
+st.plotly_chart(px.histogram(df, x="NPS_Recomendar", color="Cargo", title="Distribución de NPS x Cargo"))
+
+st.plotly_chart(px.histogram(df, x="NPS_Recomendar", color="Modulo_Usado", title="Distribución de NPS x Modulo"))
+
+st.plotly_chart(px.histogram(df, x="CS_Alexia", color="Modulo_Usado", title="Distribución de CS x Modulo"))
+
+st.plotly_chart(px.histogram(df, x="Cargo", color="Modulo_Usado", title="Distribución x Cargo x Modulo"))
+
+st.plotly_chart(px.histogram(df, x="NPS_Modulo", color="Antiguedad", title="Distribución por NPS Modulo y Antiguedad"))
+
+st.plotly_chart(px.histogram(df, x="Funcionalidad_Alexia", color="Cargo", title="Distribución por Funcionalidad y Cargo"))
+
+st.plotly_chart(px.histogram(df, x="Amigable_Alexia", color="Cargo", title="Distribución por Amigable y Cargo"))
+
+
+st.markdown("### Análisis de NPS por Variables")
+# Supón que df es tu DataFrame ya cargado y transformado
+variables = ["Cargo", "Antiguedad", "Centro", "Modulo_Usado"]  # agrega las variables que quieras analizar
+
+opcion = st.selectbox("Selecciona una variable para analizar NPS_Recomendacion:", variables)
+
+# Gráfico de distribución de NPS_Recomendacion según la variable seleccionada
+fig = px.violin(df, x=opcion, y="NPS_Recomendar", title=f"NPS_Recomendacion según {opcion}")
+st.plotly_chart(fig)
+
+fig = px.violin(df, x=opcion, y="CS_Alexia", title=f"Satifaccion Alexia según {opcion}")
+st.plotly_chart(fig)
 
 st.markdown("### NPS_Alexia por Centro")
 st.dataframe(tabla_nps)
