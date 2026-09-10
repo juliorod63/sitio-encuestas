@@ -7,6 +7,39 @@ from utils import ENCUESTAS, load_data, transformacion_df, calcular_NPS_Alexia, 
 
 #nlp = spacy.load("es_core_news_sm")
 
+
+def calcular_metricas_basicas(datos):
+    return {
+        "Respuestas": datos.shape[0],
+        "NPS Alexia": calcular_NPS_Alexia(datos),
+        "NPS Modulo": calcular_NPS_Modulo(datos),
+        "CSAT Alexia": calcular_CSAT(datos),
+        "CSAT Capacitación": calcular_CSAT_Capacitacion(datos),
+    }
+
+
+def mostrar_metrica(columna, etiqueta, valor, comparativa_2025=None, ayuda=None):
+    if etiqueta == "Respuestas":
+        columna.metric(label=etiqueta, value=f"{valor}", help=ayuda)
+        if comparativa_2025 is not None:
+            columna.markdown(
+                f'<span style="color:#6b7280; font-size:0.95rem;">2025: <strong>{comparativa_2025}</strong></span>',
+                unsafe_allow_html=True,
+            )
+        return
+
+    columna.metric(label=etiqueta, value=f"{valor:.2f}", help=ayuda)
+    if comparativa_2025 is None:
+        columna.markdown(
+            '<span style="color:#6b7280; font-size:0.95rem;">2025: <strong>sin comparativa</strong></span>',
+            unsafe_allow_html=True,
+        )
+    else:
+        columna.markdown(
+            f'<span style="color:#6b7280; font-size:0.95rem;">2025: <strong>{comparativa_2025:.2f}</strong></span>',
+            unsafe_allow_html=True,
+        )
+
 st.set_page_config(
     page_title="Resultados Encuesta Satisfacción Clientes Chile",
     page_icon=":bar_chart:",
@@ -62,6 +95,12 @@ df = transformacion_df(df)
 
 df = transformar_centros(df)
 
+df_comparativa_2025 = None
+if ENCUESTAS[encuesta_seleccionada]["anio"] == 2026:
+    df_comparativa_2025 = load_data("Encuesta 2025", st.session_state["version_cache_datos"])
+    df_comparativa_2025 = transformacion_df(df_comparativa_2025)
+    df_comparativa_2025 = transformar_centros(df_comparativa_2025)
+
 st.dataframe(df)
 st.header("Métricas Clave")
 
@@ -74,6 +113,8 @@ if modulo_seleccionado == "Todos los módulos":
     df_metricas = df
 else:
     df_metricas = df[df["Modulo_Usado"] == modulo_seleccionado]
+    if df_comparativa_2025 is not None:
+        df_comparativa_2025 = df_comparativa_2025[df_comparativa_2025["Modulo_Usado"] == modulo_seleccionado]
 
 grupos_educativos = sorted(df_metricas["Grupo_Educativo"].dropna().unique())
 grupo_educativo_seleccionado = st.selectbox(
@@ -82,6 +123,8 @@ grupo_educativo_seleccionado = st.selectbox(
 )
 if grupo_educativo_seleccionado != "Todos los grupos educativos":
     df_metricas = df_metricas[df_metricas["Grupo_Educativo"] == grupo_educativo_seleccionado]
+    if df_comparativa_2025 is not None:
+        df_comparativa_2025 = df_comparativa_2025[df_comparativa_2025["Grupo_Educativo"] == grupo_educativo_seleccionado]
 
 roles = sorted(df_metricas["Cargo"].dropna().unique())
 rol_seleccionado = st.selectbox(
@@ -90,6 +133,8 @@ rol_seleccionado = st.selectbox(
 )
 if rol_seleccionado != "Todos los roles":
     df_metricas = df_metricas[df_metricas["Cargo"] == rol_seleccionado]
+    if df_comparativa_2025 is not None:
+        df_comparativa_2025 = df_comparativa_2025[df_comparativa_2025["Cargo"] == rol_seleccionado]
 
 antiguedades = sorted(df_metricas["Antiguedad"].dropna().unique())
 antiguedad_seleccionada = st.selectbox(
@@ -98,6 +143,8 @@ antiguedad_seleccionada = st.selectbox(
 )
 if antiguedad_seleccionada != "Todas las antigüedades":
     df_metricas = df_metricas[df_metricas["Antiguedad"] == antiguedad_seleccionada]
+    if df_comparativa_2025 is not None:
+        df_comparativa_2025 = df_comparativa_2025[df_comparativa_2025["Antiguedad"] == antiguedad_seleccionada]
 
 if "Mejoras_Implementadas" in df_metricas.columns:
     df_metricas = df_metricas.copy()
@@ -110,6 +157,11 @@ if "Mejoras_Implementadas" in df_metricas.columns:
     )
     if grupos_mejoras_seleccionados and "Todas las evaluaciones" not in grupos_mejoras_seleccionados:
         df_metricas = df_metricas[df_metricas["Grupo_Mejoras_Implementadas"].isin(grupos_mejoras_seleccionados)]
+        if df_comparativa_2025 is not None:
+            if "Mejoras_Implementadas" in df_comparativa_2025.columns:
+                df_comparativa_2025 = df_comparativa_2025[df_comparativa_2025["Mejoras_Implementadas"].isin(grupos_mejoras_seleccionados)]
+            else:
+                df_comparativa_2025 = None
 
 st.divider()
 with st.expander("¿Cómo calculamos el NPS y el CSAT?"):
@@ -145,12 +197,17 @@ with st.expander("¿Cómo calculamos el NPS y el CSAT?"):
       - n es el tamaño de la muestra
     """)
 
+metricas_actuales = calcular_metricas_basicas(df_metricas)
+metricas_2025 = None
+if df_comparativa_2025 is not None and not df_comparativa_2025.empty:
+    metricas_2025 = calcular_metricas_basicas(df_comparativa_2025)
+
 col1, col2, col3, col4, col5 = st.columns(5)
-col1.metric(label="Respuestas", value=f"{df_metricas.shape[0]}", help="Cantidad de respuestas incluidas en los filtros de métricas")
-col2.metric(label="NPS Alexia", value=f"{calcular_NPS_Alexia(df_metricas):.2f}", help="NPS basado en la pregunta de recomendar Alexia")
-col3.metric(label="NPS Modulo", value=f"{calcular_NPS_Modulo(df_metricas):.2f}", help="NPS basado en la pregunta de recomendar el Módulo")
-col4.metric(label="CSAT Alexia", value=f"{calcular_CSAT(df_metricas):.2f}", help="CSAT basado en la satisfacción general con Alexia")
-col5.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df_metricas):.2f}", help="CSAT basado en la satisfacción con la Capacitación")
+mostrar_metrica(col1, "Respuestas", metricas_actuales["Respuestas"], metricas_2025["Respuestas"] if metricas_2025 else None, "Cantidad de respuestas incluidas en los filtros de métricas")
+mostrar_metrica(col2, "NPS Alexia", metricas_actuales["NPS Alexia"], metricas_2025["NPS Alexia"] if metricas_2025 else None, "NPS basado en la pregunta de recomendar Alexia")
+mostrar_metrica(col3, "NPS Modulo", metricas_actuales["NPS Modulo"], metricas_2025["NPS Modulo"] if metricas_2025 else None, "NPS basado en la pregunta de recomendar el Módulo")
+mostrar_metrica(col4, "CSAT Alexia", metricas_actuales["CSAT Alexia"], metricas_2025["CSAT Alexia"] if metricas_2025 else None, "CSAT basado en la satisfacción general con Alexia")
+mostrar_metrica(col5, "CSAT Capacitación", metricas_actuales["CSAT Capacitación"], metricas_2025["CSAT Capacitación"] if metricas_2025 else None, "CSAT basado en la satisfacción con la Capacitación")
 
 df_metricas = df_metricas.copy()
 df_metricas["Segmento_NPS"] = pd.cut(
@@ -177,6 +234,17 @@ fig = px.bar(
     },
 )
 fig.update_layout(showlegend=False)
+st.plotly_chart(fig, use_container_width=True)
+
+fig = px.histogram(
+    df_metricas,
+    x="NPS_Recomendar",
+    nbins=11,
+    range_x=[0, 10],
+    title="Histograma de NPS Recomendar",
+)
+fig.update_traces(marker_color="#38bdf8")
+fig.update_xaxes(dtick=1)
 st.plotly_chart(fig, use_container_width=True)
 
 st.divider()
