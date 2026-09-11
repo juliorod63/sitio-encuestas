@@ -51,6 +51,7 @@ COLUMNAS_2026 = {
     "¿Qué te parece el centro de ayuda de Alexia (manuales y videos) en caso de haberlo utilizado? * ": "Centro_Ayuda",
     "¿Qué nota le pondrías al soporte técnico (tiempo de respuesta en tickets)": "Soporte_Tecnico",
     "CORPORACION": "Grupo_Educativo",
+    "Corporación": "Grupo_Educativo",
 }
 
 COLUMNAS_NUMERICAS = [
