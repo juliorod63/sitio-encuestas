@@ -1,11 +1,13 @@
 import json
+import re
+import unicodedata
 
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 
 
-from utils import ENCUESTAS, load_data, transformacion_df, calcular_NPS_Alexia, calcular_NPS_Modulo, calcular_CSAT, transformar_centros, calcular_CSAT_Capacitacion, generar_analisis_inteligente_openrouter
+from utils import ENCUESTAS, OpenRouterError, load_data, transformacion_df, calcular_NPS_Alexia, calcular_NPS_Modulo, calcular_CSAT, transformar_centros, calcular_CSAT_Capacitacion, generar_analisis_inteligente_openrouter
 
 #nlp = spacy.load("es_core_news_sm")
 
@@ -102,34 +104,110 @@ def resumen_segmentos_nps(datos):
 
 
 def resumen_puntajes(datos, columna, puntajes):
-    valores = pd.to_numeric(datos[columna], errors="coerce")
-    return valores[valores.isin(puntajes)].astype(int).value_counts().reindex(puntajes, fill_value=0).astype(int).to_dict()
+    serie_puntajes = pd.to_numeric(datos[columna], errors="coerce")
+    return serie_puntajes[serie_puntajes.isin(puntajes)].astype(int).value_counts().reindex(puntajes, fill_value=0).astype(int).to_dict()
+
+
+def normalizar_texto(contenido):
+    texto_normalizado = str(contenido).lower().strip()
+    return "".join(
+        caracter
+        for caracter in unicodedata.normalize("NFD", texto_normalizado)
+        if unicodedata.category(caracter) != "Mn"
+    )
+
+
+def anonimizar_comentario(comentario, centros):
+    comentario = re.sub(r"[\w\.-]+@[\w\.-]+", "[email]", str(comentario))
+    comentario = re.sub(r"\s+", " ", comentario).strip()
+
+    for centro in centros:
+        if not isinstance(centro, str) or not centro.strip():
+            continue
+        comentario = re.sub(re.escape(centro), "[centro]", comentario, flags=re.IGNORECASE)
+
+    return comentario[:500]
+
+
+def resumen_comentarios_anonimizados(datos, max_comentarios=25):
+    if "Mejoras" not in datos.columns:
+        return {"total_comentarios": 0, "muestra_anonimizada": []}
+
+    centros = datos["Centro"].dropna().unique() if "Centro" in datos.columns else []
+    comentarios = datos["Mejoras"].dropna().astype(str).str.strip()
+    comentarios = comentarios[comentarios != ""]
+
+    return {
+        "total_comentarios": int(comentarios.shape[0]),
+        "muestra_anonimizada": [
+            anonimizar_comentario(comentario, centros)
+            for comentario in comentarios.head(max_comentarios)
+        ],
+    }
+
+
+def resumen_centros_anonimo(datos):
+    respuestas_por_centro = datos["Centro"].value_counts() if "Centro" in datos.columns else pd.Series(dtype=int)
+    return {
+        "total_centros": int(respuestas_por_centro.shape[0]),
+        "respuestas_por_centro_anonimas": respuestas_por_centro.astype(int).sort_values(ascending=False).tolist(),
+    }
+
+
+def es_respuesta_no_utilizo(valor):
+    texto = normalizar_texto(valor)
+    return "no" in texto and "utiliz" in texto
+
+
+def resumen_mejoras_implementadas(datos):
+    if "Mejoras_Implementadas" not in datos.columns:
+        return "no disponible"
+
+    base = datos.copy()
+    base["Grupo_Uso_Mejoras"] = base["Mejoras_Implementadas"].fillna("Sin respuesta")
+    no_utilizo = base[base["Grupo_Uso_Mejoras"].apply(es_respuesta_no_utilizo)]
+    si_evaluo = base[~base["Grupo_Uso_Mejoras"].apply(es_respuesta_no_utilizo)]
+
+    return {
+        "distribucion": base["Grupo_Uso_Mejoras"].value_counts().astype(int).to_dict(),
+        "no_utilizo_nuevas_funcionalidades": {
+            "respuestas": int(no_utilizo.shape[0]),
+            "metricas": calcular_metricas_basicas(no_utilizo) if not no_utilizo.empty else "sin datos",
+            "comentarios": resumen_comentarios_anonimizados(no_utilizo, max_comentarios=10),
+        },
+        "si_evaluo_nuevas_funcionalidades": {
+            "respuestas": int(si_evaluo.shape[0]),
+            "metricas": calcular_metricas_basicas(si_evaluo) if not si_evaluo.empty else "sin datos",
+            "comentarios": resumen_comentarios_anonimizados(si_evaluo, max_comentarios=10),
+        },
+    }
 
 
 def construir_payload_analisis_inteligente(
-    grupo_educativo,
-    filtros,
-    metricas_actuales,
-    metricas_2025,
-    df_metricas,
-    df_comparativa_2025,
-    centros_grupo_educativo,
+    grupo_educativo_actual,
+    filtros_actuales,
+    current_metrics,
+    baseline_metrics,
+    current_data,
+    baseline_data,
 ):
     return {
         "contexto": {
             "encuesta_actual": 2026,
             "comparativa": 2025,
-            "grupo_educativo": grupo_educativo,
-            "filtros": filtros,
-            "comparativa_2025_disponible": metricas_2025 is not None,
+            "grupo_educativo": grupo_educativo_actual,
+            "filtros": filtros_actuales,
+            "comparativa_2025_disponible": baseline_metrics is not None,
         },
-        "metricas_2026": metricas_actuales,
-        "metricas_2025": metricas_2025 or "sin comparativa",
-        "distribucion_nps_2026": resumen_segmentos_nps(df_metricas),
-        "distribucion_nps_2025": resumen_segmentos_nps(df_comparativa_2025) if df_comparativa_2025 is not None and not df_comparativa_2025.empty else "sin comparativa",
-        "puntajes_nps_2026": resumen_puntajes(df_metricas, "NPS_Recomendar", PUNTAJES_NPS),
-        "puntajes_csat_alexia_2026": resumen_puntajes(df_metricas, "CS_Alexia", PUNTAJES_CSAT),
-        "centros_incluidos": centros_grupo_educativo.to_dict(orient="records") if centros_grupo_educativo is not None else [],
+        "metricas_2026": current_metrics,
+        "metricas_2025": baseline_metrics or "sin comparativa",
+        "distribucion_nps_2026": resumen_segmentos_nps(current_data),
+        "distribucion_nps_2025": resumen_segmentos_nps(baseline_data) if baseline_data is not None and not baseline_data.empty else "sin comparativa",
+        "puntajes_nps_2026": resumen_puntajes(current_data, "NPS_Recomendar", PUNTAJES_NPS),
+        "puntajes_csat_alexia_2026": resumen_puntajes(current_data, "CS_Alexia", PUNTAJES_CSAT),
+        "centros_incluidos": resumen_centros_anonimo(current_data),
+        "comentarios_2026": resumen_comentarios_anonimizados(current_data),
+        "mejoras_implementadas_2026": resumen_mejoras_implementadas(current_data),
     }
 
 
@@ -139,6 +217,10 @@ Analiza métricas de satisfacción de clientes con lenguaje ejecutivo, claro y a
 No inventes datos. Si falta comparativa, dilo explícitamente.
 Distingue hallazgos fuertes de señales exploratorias cuando el tamaño muestral sea bajo.
 Prioriza lectura de NPS Alexia, NPS Módulo, CSAT Alexia, CSAT Capacitación y volumen de respuestas.
+Analiza comentarios abiertos sólo como evidencia cualitativa anonimizada.
+No menciones nombres de centros ni intentes inferir usuarios individuales.
+Siempre debes incluir una lectura explícita de los comentarios abiertos cuando el payload los incluya.
+Siempre debes analizar el grupo no_utilizo_nuevas_funcionalidades cuando el payload lo incluya.
 Entrega conclusiones breves y recomendaciones prácticas.
 """.strip()
 
@@ -149,14 +231,27 @@ Analiza las métricas del grupo educativo seleccionado comparando 2026 contra 20
 Usa estos datos agregados:
 {payload_json}
 
-Entrega:
-1. Resumen ejecutivo.
-2. Principales cambios vs 2025.
-3. Riesgos o señales de alerta.
-4. Lectura por volumen de respuestas.
-5. Recomendaciones concretas para seguimiento comercial o customer success.
+Entrega obligatoriamente estas secciones con estos títulos exactos:
+
+1. Resumen ejecutivo
+2. Comparativa 2026 vs 2025
+3. Lectura de comentarios abiertos
+4. Adopción de nuevas funcionalidades
+5. Grupo que no utilizó las nuevas funcionalidades
+6. Riesgos y señales de alerta
+7. Recomendaciones concretas
+
+La sección "Lectura de comentarios abiertos" es obligatoria aunque haya pocos comentarios.
+Si no hay comentarios disponibles, dilo explícitamente y no inventes temas.
+
+La sección "Grupo que no utilizó las nuevas funcionalidades" es obligatoria.
+Si no hay respuestas en ese grupo, dilo explícitamente.
+No omitas esta sección.
+
+En "Adopción de nuevas funcionalidades", usa la distribución de mejoras implementadas para distinguir entre valoración positiva, valoración negativa, no uso y falta de respuesta cuando esos datos existan.
 
 No uses tablas largas. No inventes causas no presentes en los datos.
+No nombres centros específicos ni usuarios individuales.
 """.strip()
 
 st.set_page_config(
@@ -385,7 +480,6 @@ elif st.button("Generar análisis inteligente"):
         metricas_2025,
         df_metricas,
         df_comparativa_2025,
-        centros_grupo_educativo,
     )
     user_prompt = USER_PROMPT_ANALISIS_INTELIGENTE.format(
         payload_json=json.dumps(payload_analisis, ensure_ascii=False, indent=2)
@@ -397,7 +491,7 @@ elif st.button("Generar análisis inteligente"):
         st.markdown(analisis_inteligente)
     except ValueError as error:
         st.error(str(error))
-    except Exception as error:
+    except OpenRouterError as error:
         st.error(f"No se pudo generar el análisis inteligente: {error}")
 
 st.divider()

@@ -9,6 +9,10 @@ from wordcloud import WordCloud
 
 #nlp = spacy.load("es_core_news_sm")
 
+
+class OpenRouterError(Exception):
+    pass
+
 ENCUESTAS = {
     "Encuesta 2025": {
         "anio": 2025,
@@ -115,31 +119,34 @@ def generar_analisis_inteligente_openrouter(system_prompt, user_prompt):
     if not api_key:
         raise ValueError("Falta configurar OPENROUTER_API_KEY en Streamlit secrets.")
 
-    response = requests.post(
-        "https://openrouter.ai/api/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://sitio-encuestas-alexia-cl.streamlit.app/",
-            "X-Title": "Resultados Encuesta Satisfacción Clientes Chile",
-        },
-        json={
-            "model": modelo,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            "temperature": 0.2,
-        },
-        timeout=90,
-    )
-    response.raise_for_status()
+    try:
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://sitio-encuestas-alexia-cl.streamlit.app/",
+                "X-Title": "Resultados Encuesta Satisfacción Clientes Chile",
+            },
+            json={
+                "model": modelo,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "temperature": 0.2,
+            },
+            timeout=90,
+        )
+        response.raise_for_status()
+    except requests.RequestException as error:
+        raise OpenRouterError(f"OpenRouter no respondió correctamente: {error}") from error
     data = response.json()
 
     try:
         return data["choices"][0]["message"]["content"]
     except (KeyError, IndexError) as error:
-        raise RuntimeError("OpenRouter no devolvió una respuesta válida.") from error
+        raise OpenRouterError("OpenRouter no devolvió una respuesta válida.") from error
 
 
 def calcular_NPS_Modulo(df):
