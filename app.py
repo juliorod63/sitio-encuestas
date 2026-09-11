@@ -1,9 +1,11 @@
+import json
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 
 
-from utils import ENCUESTAS, load_data, transformacion_df, calcular_NPS_Alexia, calcular_NPS_Modulo, calcular_CSAT, transformar_centros, calcular_CSAT_Capacitacion
+from utils import ENCUESTAS, load_data, transformacion_df, calcular_NPS_Alexia, calcular_NPS_Modulo, calcular_CSAT, transformar_centros, calcular_CSAT_Capacitacion, generar_analisis_inteligente_openrouter
 
 #nlp = spacy.load("es_core_news_sm")
 
@@ -88,6 +90,74 @@ def grafico_distribucion_puntajes_nps(datos, columna, titulo, grupo=None):
 
 def grafico_distribucion_puntajes_csat(datos, columna, titulo, grupo=None):
     return grafico_distribucion_puntajes(datos, columna, titulo, PUNTAJES_CSAT, grupo, "#38bdf8")
+
+
+def resumen_segmentos_nps(datos):
+    segmentos = pd.cut(
+        datos["NPS_Recomendar"],
+        bins=[-1, 6, 8, 10],
+        labels=["Detractores", "Pasivos", "Promotores"],
+    )
+    return segmentos.value_counts().reindex(["Detractores", "Pasivos", "Promotores"], fill_value=0).astype(int).to_dict()
+
+
+def resumen_puntajes(datos, columna, puntajes):
+    valores = pd.to_numeric(datos[columna], errors="coerce")
+    return valores[valores.isin(puntajes)].astype(int).value_counts().reindex(puntajes, fill_value=0).astype(int).to_dict()
+
+
+def construir_payload_analisis_inteligente(
+    grupo_educativo,
+    filtros,
+    metricas_actuales,
+    metricas_2025,
+    df_metricas,
+    df_comparativa_2025,
+    centros_grupo_educativo,
+):
+    return {
+        "contexto": {
+            "encuesta_actual": 2026,
+            "comparativa": 2025,
+            "grupo_educativo": grupo_educativo,
+            "filtros": filtros,
+            "comparativa_2025_disponible": metricas_2025 is not None,
+        },
+        "metricas_2026": metricas_actuales,
+        "metricas_2025": metricas_2025 or "sin comparativa",
+        "distribucion_nps_2026": resumen_segmentos_nps(df_metricas),
+        "distribucion_nps_2025": resumen_segmentos_nps(df_comparativa_2025) if df_comparativa_2025 is not None and not df_comparativa_2025.empty else "sin comparativa",
+        "puntajes_nps_2026": resumen_puntajes(df_metricas, "NPS_Recomendar", PUNTAJES_NPS),
+        "puntajes_csat_alexia_2026": resumen_puntajes(df_metricas, "CS_Alexia", PUNTAJES_CSAT),
+        "centros_incluidos": centros_grupo_educativo.to_dict(orient="records") if centros_grupo_educativo is not None else [],
+    }
+
+
+SYSTEM_PROMPT_ANALISIS_INTELIGENTE = """
+Eres un analista senior de customer success para software educativo en Chile.
+Analiza métricas de satisfacción de clientes con lenguaje ejecutivo, claro y accionable.
+No inventes datos. Si falta comparativa, dilo explícitamente.
+Distingue hallazgos fuertes de señales exploratorias cuando el tamaño muestral sea bajo.
+Prioriza lectura de NPS Alexia, NPS Módulo, CSAT Alexia, CSAT Capacitación y volumen de respuestas.
+Entrega conclusiones breves y recomendaciones prácticas.
+""".strip()
+
+
+USER_PROMPT_ANALISIS_INTELIGENTE = """
+Analiza las métricas del grupo educativo seleccionado comparando 2026 contra 2025 cuando exista información comparable.
+
+Usa estos datos agregados:
+{payload_json}
+
+Entrega:
+1. Resumen ejecutivo.
+2. Principales cambios vs 2025.
+3. Riesgos o señales de alerta.
+4. Lectura por volumen de respuestas.
+5. Recomendaciones concretas para seguimiento comercial o customer success.
+
+No uses tablas largas. No inventes causas no presentes en los datos.
+""".strip()
 
 st.set_page_config(
     page_title="Resultados Encuesta Satisfacción Clientes Chile",
@@ -198,6 +268,7 @@ if antiguedad_seleccionada != "Todas las antigüedades":
     if df_comparativa_2025 is not None:
         df_comparativa_2025 = df_comparativa_2025[df_comparativa_2025["Antiguedad"] == antiguedad_seleccionada]
 
+grupos_mejoras_seleccionados = ["Todas las evaluaciones"]
 if "Mejoras_Implementadas" in df_metricas.columns:
     df_metricas = df_metricas.copy()
     df_metricas["Grupo_Mejoras_Implementadas"] = df_metricas["Mejoras_Implementadas"].fillna("Sin respuesta")
@@ -294,6 +365,40 @@ st.plotly_chart(fig, use_container_width=True)
 if centros_grupo_educativo is not None:
     st.markdown(f"#### Centros incluidos en {grupo_educativo_seleccionado}")
     st.dataframe(centros_grupo_educativo, use_container_width=True)
+
+st.markdown("#### Análisis Inteligente")
+analisis_disponible = ENCUESTAS[encuesta_seleccionada]["anio"] == 2026 and grupo_educativo_seleccionado != "Todos los grupos educativos"
+if not analisis_disponible:
+    st.info("Selecciona la encuesta 2026 y un grupo educativo para generar el análisis inteligente.")
+elif st.button("Generar análisis inteligente"):
+    filtros_analisis = {
+        "modulo": modulo_seleccionado,
+        "grupo_educativo": grupo_educativo_seleccionado,
+        "rol": rol_seleccionado,
+        "antiguedad": antiguedad_seleccionada,
+        "mejoras_implementadas": grupos_mejoras_seleccionados,
+    }
+    payload_analisis = construir_payload_analisis_inteligente(
+        grupo_educativo_seleccionado,
+        filtros_analisis,
+        metricas_actuales,
+        metricas_2025,
+        df_metricas,
+        df_comparativa_2025,
+        centros_grupo_educativo,
+    )
+    user_prompt = USER_PROMPT_ANALISIS_INTELIGENTE.format(
+        payload_json=json.dumps(payload_analisis, ensure_ascii=False, indent=2)
+    )
+
+    try:
+        with st.spinner("Generando análisis inteligente..."):
+            analisis_inteligente = generar_analisis_inteligente_openrouter(SYSTEM_PROMPT_ANALISIS_INTELIGENTE, user_prompt)
+        st.markdown(analisis_inteligente)
+    except ValueError as error:
+        st.error(str(error))
+    except Exception as error:
+        st.error(f"No se pudo generar el análisis inteligente: {error}")
 
 st.divider()
 

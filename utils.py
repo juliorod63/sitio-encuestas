@@ -108,6 +108,40 @@ def load_data(nombre_encuesta, version_cache=0):
     return df
 
 
+def generar_analisis_inteligente_openrouter(system_prompt, user_prompt):
+    api_key = st.secrets.get("OPENROUTER_API_KEY")
+    modelo = st.secrets.get("OPENROUTER_MODEL", "openai/gpt-4o-mini")
+
+    if not api_key:
+        raise ValueError("Falta configurar OPENROUTER_API_KEY en Streamlit secrets.")
+
+    response = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://sitio-encuestas-alexia-cl.streamlit.app/",
+            "X-Title": "Resultados Encuesta Satisfacción Clientes Chile",
+        },
+        json={
+            "model": modelo,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "temperature": 0.2,
+        },
+        timeout=90,
+    )
+    response.raise_for_status()
+    data = response.json()
+
+    try:
+        return data["choices"][0]["message"]["content"]
+    except (KeyError, IndexError) as error:
+        raise RuntimeError("OpenRouter no devolvió una respuesta válida.") from error
+
+
 def calcular_NPS_Modulo(df):
     promoters = df[df["NPS_Modulo"] >= 9].shape[0]
     detractors = df[df["NPS_Modulo"] <= 6].shape[0]
