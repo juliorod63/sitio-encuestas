@@ -428,30 +428,56 @@ mostrar_metrica(col4, "CSAT Alexia", metricas_actuales["CSAT Alexia"], metricas_
 mostrar_metrica(col5, "CSAT Capacitación", metricas_actuales["CSAT Capacitación"], metricas_2025["CSAT Capacitación"] if metricas_2025 else None, "CSAT basado en la satisfacción con la Capacitación")
 
 df_metricas = df_metricas.copy()
-df_metricas["Segmento_NPS"] = pd.cut(
-    df_metricas["NPS_Recomendar"],
-    bins=[-1, 6, 8, 10],
-    labels=["Detractores (0-6)", "Pasivos (7-8)", "Promotores (9-10)"],
+df_metricas["Grupo_NPS"] = pd.NA
+df_metricas.loc[df_metricas["NPS_Recomendar"].isin([0, 1, 2]), "Grupo_NPS"] = "Radicales (0-2)"
+df_metricas.loc[
+    df_metricas["NPS_Recomendar"].isin([3, 4, 5, 6]),
+    "Grupo_NPS",
+] = "Otros detractores (3-6)"
+df_metricas.loc[df_metricas["NPS_Recomendar"].isin([7, 8]), "Grupo_NPS"] = "Pasivos (7-8)"
+df_metricas.loc[df_metricas["NPS_Recomendar"].isin([9, 10]), "Grupo_NPS"] = "Promotores (9-10)"
+df_metricas["Segmento_NPS"] = df_metricas["Grupo_NPS"].replace(
+    {
+        "Radicales (0-2)": "Detractores (0-6)",
+        "Otros detractores (3-6)": "Detractores (0-6)",
+    }
 )
-distribucion_nps = df_metricas["Segmento_NPS"].value_counts().reindex(
-    ["Detractores (0-6)", "Pasivos (7-8)", "Promotores (9-10)"],
-    fill_value=0,
-).reset_index()
-distribucion_nps.columns = ["Segmento NPS", "Respuestas"]
+orden_segmentos_nps = ["Detractores (0-6)", "Pasivos (7-8)", "Promotores (9-10)"]
+orden_grupos_nps = ["Radicales (0-2)", "Otros detractores (3-6)", "Pasivos (7-8)", "Promotores (9-10)"]
+pares_nps = pd.MultiIndex.from_tuples(
+    [
+        ("Detractores (0-6)", "Radicales (0-2)"),
+        ("Detractores (0-6)", "Otros detractores (3-6)"),
+        ("Pasivos (7-8)", "Pasivos (7-8)"),
+        ("Promotores (9-10)", "Promotores (9-10)"),
+    ],
+    names=["Segmento NPS", "Grupo NPS"],
+)
+distribucion_nps = (
+    df_metricas.groupby(["Segmento_NPS", "Grupo_NPS"], dropna=True)
+    .size()
+    .reindex(pares_nps, fill_value=0)
+    .reset_index(name="Respuestas")
+)
 fig = px.bar(
     distribucion_nps,
     x="Segmento NPS",
     y="Respuestas",
-    color="Segmento NPS",
+    color="Grupo NPS",
     text="Respuestas",
     title="Distribución de NPS",
     color_discrete_map={
-        "Detractores (0-6)": "#d62728",
+        "Radicales (0-2)": "#8b0000",
+        "Otros detractores (3-6)": "#d62728",
         "Pasivos (7-8)": "#ffbf00",
         "Promotores (9-10)": "#2ca02c",
     },
 )
-fig.update_layout(showlegend=False)
+fig.update_layout(
+    barmode="stack",
+    showlegend=True,
+    xaxis={"categoryorder": "array", "categoryarray": orden_segmentos_nps},
+)
 st.plotly_chart(fig, use_container_width=True)
 
 fig = grafico_distribucion_puntajes_nps(df_metricas, "NPS_Recomendar", "Histograma de NPS Recomendar")
