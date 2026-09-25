@@ -365,14 +365,23 @@ else:
         df_comparativa_2025 = df_comparativa_2025[df_comparativa_2025["Modulo_Usado"] == modulo_seleccionado]
 
 grupos_educativos = sorted(df_metricas["Grupo_Educativo"].dropna().unique())
+opcion_todos_grupos = "Todos los grupos educativos"
 grupos_educativos_seleccionados = st.multiselect(
     "Filtra las métricas por grupo educativo:",
-    options=grupos_educativos,
-    default=grupos_educativos,
+    options=[opcion_todos_grupos, *grupos_educativos],
+    default=[opcion_todos_grupos],
 )
-todos_los_grupos_educativos = len(grupos_educativos_seleccionados) == len(grupos_educativos)
+todos_los_grupos_educativos = (
+    not grupos_educativos_seleccionados
+    or opcion_todos_grupos in grupos_educativos_seleccionados
+)
+grupos_educativos_seleccionados = [
+    grupo
+    for grupo in grupos_educativos_seleccionados
+    if grupo != opcion_todos_grupos
+]
 grupo_educativo_seleccionado = (
-    "Todos los grupos educativos"
+    opcion_todos_grupos
     if todos_los_grupos_educativos
     else grupos_educativos_seleccionados
 )
