@@ -365,17 +365,24 @@ else:
         df_comparativa_2025 = df_comparativa_2025[df_comparativa_2025["Modulo_Usado"] == modulo_seleccionado]
 
 grupos_educativos = sorted(df_metricas["Grupo_Educativo"].dropna().unique())
-grupo_educativo_seleccionado = st.selectbox(
+grupos_educativos_seleccionados = st.multiselect(
     "Filtra las métricas por grupo educativo:",
-    options=["Todos los grupos educativos", *grupos_educativos],
+    options=grupos_educativos,
+    default=grupos_educativos,
+)
+todos_los_grupos_educativos = len(grupos_educativos_seleccionados) == len(grupos_educativos)
+grupo_educativo_seleccionado = (
+    "Todos los grupos educativos"
+    if todos_los_grupos_educativos
+    else grupos_educativos_seleccionados
 )
 centros_grupo_educativo = None
-if grupo_educativo_seleccionado != "Todos los grupos educativos":
-    df_metricas = df_metricas[df_metricas["Grupo_Educativo"] == grupo_educativo_seleccionado]
+if not todos_los_grupos_educativos:
+    df_metricas = df_metricas[df_metricas["Grupo_Educativo"].isin(grupos_educativos_seleccionados)]
     centros_grupo_educativo = df_metricas["Centro"].value_counts().reset_index()
     centros_grupo_educativo.columns = ["Centro", "Respuestas"]
     if df_comparativa_2025 is not None:
-        df_comparativa_2025 = df_comparativa_2025[df_comparativa_2025["Grupo_Educativo"] == grupo_educativo_seleccionado]
+        df_comparativa_2025 = df_comparativa_2025[df_comparativa_2025["Grupo_Educativo"].isin(grupos_educativos_seleccionados)]
 
 roles = sorted(df_metricas["Cargo"].dropna().unique())
 rol_seleccionado = st.selectbox(
@@ -579,11 +586,11 @@ else:
     st.plotly_chart(grafico_variacion, use_container_width=True)
 
 if centros_grupo_educativo is not None:
-    st.markdown(f"#### Centros incluidos en {grupo_educativo_seleccionado}")
+    st.markdown(f"#### Centros incluidos en: {', '.join(grupos_educativos_seleccionados)}")
     st.dataframe(centros_grupo_educativo, use_container_width=True)
 
 st.markdown("#### Análisis Inteligente")
-analisis_disponible = ENCUESTAS[encuesta_seleccionada]["anio"] == 2026 and grupo_educativo_seleccionado != "Todos los grupos educativos"
+analisis_disponible = ENCUESTAS[encuesta_seleccionada]["anio"] == 2026 and not todos_los_grupos_educativos
 if not analisis_disponible:
     st.info("Selecciona la encuesta 2026 y un grupo educativo para generar el análisis inteligente.")
 elif st.button("Generar análisis inteligente"):
