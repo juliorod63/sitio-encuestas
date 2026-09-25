@@ -128,6 +128,20 @@ def resumen_puntajes(datos, columna, puntajes):
     return serie_puntajes[serie_puntajes.isin(puntajes)].astype(int).value_counts().reindex(puntajes, fill_value=0).astype(int).to_dict()
 
 
+def preparar_distribucion_nps_comparativa(datos):
+    puntajes = pd.to_numeric(datos["NPS_Recomendar"], errors="coerce")
+    puntajes = puntajes[puntajes.isin(PUNTAJES_NPS)].astype(int)
+    distribucion = puntajes.value_counts().reindex(PUNTAJES_NPS, fill_value=0).rename_axis("Puntaje").reset_index(name="Respuestas")
+    total_respuestas = distribucion["Respuestas"].sum()
+    distribucion["Porcentaje"] = distribucion["Respuestas"].div(total_respuestas).mul(100) if total_respuestas else 0
+    distribucion["Grupo NPS"] = pd.cut(
+        distribucion["Puntaje"],
+        bins=[-1, 2, 6, 8, 10],
+        labels=["Radicales (0-2)", "Otros detractores (3-6)", "Pasivos (7-8)", "Promotores (9-10)"],
+    )
+    return distribucion
+
+
 def normalizar_texto(contenido):
     texto_normalizado = str(contenido).lower().strip()
     return "".join(
@@ -502,6 +516,58 @@ st.plotly_chart(fig, use_container_width=True)
 
 fig = grafico_distribucion_puntajes_nps(df_metricas, "NPS_Recomendar", "Histograma de NPS Recomendar")
 st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("#### Comparación de distribución NPS: 2025 vs 2026")
+if df_comparativa_2025 is None or df_comparativa_2025.empty:
+    st.info("No hay datos comparables de 2025 para los filtros seleccionados.")
+else:
+    distribucion_nps_2026 = preparar_distribucion_nps_comparativa(df_metricas)
+    distribucion_nps_2025 = preparar_distribucion_nps_comparativa(df_comparativa_2025)
+    max_porcentaje = max(distribucion_nps_2025["Porcentaje"].max(), distribucion_nps_2026["Porcentaje"].max())
+    rango_y = [0, max_porcentaje * 1.15 if max_porcentaje else 1]
+    colores_nps = {
+        "Radicales (0-2)": "#8b0000",
+        "Otros detractores (3-6)": "#d62728",
+        "Pasivos (7-8)": "#ffbf00",
+        "Promotores (9-10)": "#2ca02c",
+    }
+
+    col_2025, col_2026 = st.columns(2)
+    for panel, datos_distribucion, anio, total in [
+        (col_2025, distribucion_nps_2025, 2025, len(pd.to_numeric(df_comparativa_2025["NPS_Recomendar"], errors="coerce").dropna())),
+        (col_2026, distribucion_nps_2026, 2026, len(pd.to_numeric(df_metricas["NPS_Recomendar"], errors="coerce").dropna())),
+    ]:
+        grafico_comparacion = px.bar(
+            datos_distribucion,
+            x="Puntaje",
+            y="Porcentaje",
+            color="Grupo NPS",
+            text=datos_distribucion["Porcentaje"].map(lambda valor: f"{valor:.1f}%"),
+            title=f"Distribución NPS {anio} (n={total})",
+            color_discrete_map=colores_nps,
+        )
+        grafico_comparacion.update_layout(showlegend=anio == 2026)
+        grafico_comparacion.update_yaxes(range=rango_y, title="Porcentaje de respuestas")
+        grafico_comparacion.update_xaxes(dtick=1, title="Puntaje NPS")
+        panel.plotly_chart(grafico_comparacion, use_container_width=True)
+
+    variacion_nps = distribucion_nps_2026[["Puntaje", "Porcentaje"]].rename(columns={"Porcentaje": "2026"})
+    variacion_nps["2025"] = distribucion_nps_2025["Porcentaje"]
+    variacion_nps["Variación"] = variacion_nps["2026"] - variacion_nps["2025"]
+    variacion_nps["Sentido"] = variacion_nps["Variación"].apply(lambda valor: "Aumentó" if valor > 0 else "Disminuyó" if valor < 0 else "Sin cambio")
+    grafico_variacion = px.bar(
+        variacion_nps,
+        x="Puntaje",
+        y="Variación",
+        color="Sentido",
+        text=variacion_nps["Variación"].map(lambda valor: f"{valor:+.1f} pp"),
+        title="Cambio en la distribución: 2026 vs 2025",
+        color_discrete_map={"Aumentó": "#16a34a", "Disminuyó": "#dc2626", "Sin cambio": "#6b7280"},
+    )
+    grafico_variacion.add_hline(y=0, line_width=1, line_color="#6b7280")
+    grafico_variacion.update_yaxes(title="Diferencia en puntos porcentuales")
+    grafico_variacion.update_xaxes(dtick=1, title="Puntaje NPS")
+    st.plotly_chart(grafico_variacion, use_container_width=True)
 
 if centros_grupo_educativo is not None:
     st.markdown(f"#### Centros incluidos en {grupo_educativo_seleccionado}")
