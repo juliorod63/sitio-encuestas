@@ -546,6 +546,15 @@ else:
             title=f"Distribución NPS {anio} (n={total})",
             color_discrete_map=colores_nps,
         )
+        grafico_comparacion.add_scatter(
+            x=datos_distribucion["Puntaje"],
+            y=datos_distribucion["Porcentaje"],
+            mode="lines+markers",
+            name="Perfil de distribución",
+            line={"color": "#1f2937", "width": 3, "shape": "spline"},
+            marker={"color": "#1f2937", "size": 7},
+            hovertemplate="Puntaje %{x}<br>Perfil: %{y:.1f}%<extra></extra>",
+        )
         grafico_comparacion.update_layout(showlegend=anio == 2026)
         grafico_comparacion.update_yaxes(range=rango_y, title="Porcentaje de respuestas")
         grafico_comparacion.update_xaxes(dtick=1, title="Puntaje NPS")
