@@ -23,6 +23,24 @@ def calcular_metricas_basicas(datos):
 
 
 def mostrar_metrica(columna, etiqueta, valor, comparativa_2025=None, ayuda=None):
+    def mostrar_comparativa(valor_2025, decimales=2):
+        diferencia = valor - valor_2025
+        if diferencia > 0:
+            color = "#16a34a"
+            indicador = "&#9650;"
+        elif diferencia < 0:
+            color = "#dc2626"
+            indicador = "&#9660;"
+        else:
+            color = "#6b7280"
+            indicador = "&#8226;"
+
+        valor_diferencia = f"{diferencia:+.{decimales}f}"
+        columna.markdown(
+            f'<span style="color:{color}; font-size:0.95rem;">{indicador} <strong>{valor_diferencia}</strong> vs. 2025</span>',
+            unsafe_allow_html=True,
+        )
+
     if etiqueta == "Respuestas":
         columna.metric(label=etiqueta, value=f"{valor}", help=ayuda)
         if comparativa_2025 is not None:
@@ -30,6 +48,7 @@ def mostrar_metrica(columna, etiqueta, valor, comparativa_2025=None, ayuda=None)
                 f'<span style="color:#6b7280; font-size:0.95rem;">2025: <strong>{comparativa_2025}</strong></span>',
                 unsafe_allow_html=True,
             )
+            mostrar_comparativa(comparativa_2025, decimales=0)
         return
 
     columna.metric(label=etiqueta, value=f"{valor:.2f}", help=ayuda)
@@ -43,6 +62,7 @@ def mostrar_metrica(columna, etiqueta, valor, comparativa_2025=None, ayuda=None)
             f'<span style="color:#6b7280; font-size:0.95rem;">2025: <strong>{comparativa_2025:.2f}</strong></span>',
             unsafe_allow_html=True,
         )
+        mostrar_comparativa(comparativa_2025)
 
 
 PUNTAJES_NPS = list(range(0, 11))
