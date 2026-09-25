@@ -7,7 +7,7 @@ import pandas as pd
 import plotly.express as px
 
 
-from utils import ENCUESTAS, OpenRouterError, load_data, transformacion_df, calcular_NPS_Alexia, calcular_NPS_Modulo, calcular_CSAT, transformar_centros, calcular_CSAT_Capacitacion, generar_analisis_inteligente_openrouter
+from utils import ENCUESTAS, OpenRouterError, load_data, transformacion_df, deduplicar_por_email, calcular_NPS_Alexia, calcular_NPS_Modulo, calcular_CSAT, transformar_centros, calcular_CSAT_Capacitacion, generar_analisis_inteligente_openrouter
 
 #nlp = spacy.load("es_core_news_sm")
 
@@ -334,20 +334,31 @@ else:
     st.success("Contraseña correcta. Acceso concedido.")
 
 df = load_data(encuesta_seleccionada, st.session_state["version_cache_datos"])
+respuestas_originales = len(df)
 
 st.markdown(f"### Resultados de la Encuesta {ENCUESTAS[encuesta_seleccionada]['anio']}")
-st.write(" Respuestas: ", df.shape[0])
-
-
 df = transformacion_df(df)
+df, duplicados_eliminados = deduplicar_por_email(df)
+respuestas_finales = len(df)
+st.write("Respuestas originales: ", respuestas_originales)
+st.write("Respuestas después de eliminar duplicados: ", respuestas_finales)
+st.write("Duplicados eliminados: ", duplicados_eliminados)
 
 df = transformar_centros(df)
 
 df_comparativa_2025 = None
+respuestas_originales_2025 = None
+duplicados_eliminados_2025 = None
 if ENCUESTAS[encuesta_seleccionada]["anio"] == 2026:
     df_comparativa_2025 = load_data("Encuesta 2025", st.session_state["version_cache_datos"])
+    respuestas_originales_2025 = len(df_comparativa_2025)
     df_comparativa_2025 = transformacion_df(df_comparativa_2025)
+    df_comparativa_2025, duplicados_eliminados_2025 = deduplicar_por_email(df_comparativa_2025)
     df_comparativa_2025 = transformar_centros(df_comparativa_2025)
+    with st.expander("Control de respuestas duplicadas 2025"):
+        st.write("Respuestas originales: ", respuestas_originales_2025)
+        st.write("Respuestas después de eliminar duplicados: ", len(df_comparativa_2025))
+        st.write("Duplicados eliminados: ", duplicados_eliminados_2025)
 
 st.dataframe(df)
 st.header("Métricas Clave")

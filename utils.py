@@ -174,6 +174,35 @@ def calcular_CSAT_Capacitacion(df):
 def calcular_CSAT(df):
     csat = (df["CS_Alexia"].isin([4, 5]).sum() / df["CS_Alexia"].count()) * 100
     return csat
+
+
+def deduplicar_por_email(df):
+    base = df.copy()
+    total_original = len(base)
+    correos = base["email"].fillna("").astype(str).str.strip().str.lower()
+    base["email"] = correos
+
+    filas_con_correo = base["email"] != ""
+    filas_con_correo_df = base[filas_con_correo].copy()
+    filas_sin_correo_df = base[~filas_con_correo].copy()
+
+    if not filas_con_correo_df.empty and "Fecha" in filas_con_correo_df.columns:
+        filas_con_correo_df["_fecha_orden"] = pd.to_datetime(
+            filas_con_correo_df["Fecha"], errors="coerce"
+        )
+        filas_con_correo_df = filas_con_correo_df.sort_values(
+            "_fecha_orden", kind="stable", na_position="first"
+        ).drop(columns="_fecha_orden")
+
+    base_limpia = pd.concat(
+        [
+            filas_con_correo_df.drop_duplicates(subset="email", keep="last"),
+            filas_sin_correo_df,
+        ],
+        ignore_index=True,
+    )
+    duplicados_eliminados = total_original - len(base_limpia)
+    return base_limpia, duplicados_eliminados
     
 
 def transformacion_df(df):
