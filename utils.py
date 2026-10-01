@@ -56,6 +56,7 @@ COLUMNAS_2026 = {
     "¿Qué nota le pondrías al soporte técnico (tiempo de respuesta en tickets)": "Soporte_Tecnico",
     "CORPORACION": "Grupo_Educativo",
     "Corporación": "Grupo_Educativo",
+    "TIPO": "Tipo",
 }
 
 COLUMNAS_NUMERICAS = [

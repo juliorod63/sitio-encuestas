@@ -375,6 +375,29 @@ else:
     if df_comparativa_2025 is not None:
         df_comparativa_2025 = df_comparativa_2025[df_comparativa_2025["Modulo_Usado"] == modulo_seleccionado]
 
+tipo_seleccionado = "Todos los tipos"
+if "Tipo" in df_metricas.columns:
+    df_metricas = df_metricas.copy()
+    df_metricas["Tipo"] = df_metricas["Tipo"].fillna("Sin dato").astype(str).str.strip()
+    tipos_disponibles = sorted(df_metricas["Tipo"].unique())
+    tipo_seleccionado = st.selectbox(
+        "Filtra las métricas por tipo:",
+        options=["Todos los tipos", *tipos_disponibles],
+    )
+    if tipo_seleccionado != "Todos los tipos":
+        df_metricas = df_metricas[df_metricas["Tipo"] == tipo_seleccionado]
+        if df_comparativa_2025 is not None:
+            if "Tipo" in df_comparativa_2025.columns:
+                df_comparativa_2025 = df_comparativa_2025.copy()
+                df_comparativa_2025["Tipo"] = df_comparativa_2025["Tipo"].fillna("Sin dato").astype(str).str.strip()
+                df_comparativa_2025 = df_comparativa_2025[df_comparativa_2025["Tipo"] == tipo_seleccionado]
+            else:
+                df_comparativa_2025 = None
+                st.info(
+                    f"No hay comparativa con 2025 para el tipo '{tipo_seleccionado}': "
+                    "la encuesta 2025 todavía no incluye la columna Tipo."
+                )
+
 grupos_educativos = sorted(df_metricas["Grupo_Educativo"].dropna().unique())
 opcion_todos_grupos = "Todos los grupos educativos"
 grupos_educativos_seleccionados = st.multiselect(
@@ -616,6 +639,7 @@ if not analisis_disponible:
 elif st.button("Generar análisis inteligente"):
     filtros_analisis = {
         "modulo": modulo_seleccionado,
+        "tipo": tipo_seleccionado,
         "grupo_educativo": grupo_educativo_seleccionado,
         "rol": rol_seleccionado,
         "antiguedad": antiguedad_seleccionada,
