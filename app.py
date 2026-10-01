@@ -219,6 +219,7 @@ def resumen_mejoras_implementadas(datos):
 
 def construir_payload_analisis_inteligente(
     grupo_educativo_actual,
+    tipo_centro_actual,
     filtros_actuales,
     current_metrics,
     baseline_metrics,
@@ -230,6 +231,7 @@ def construir_payload_analisis_inteligente(
             "encuesta_actual": 2026,
             "comparativa": 2025,
             "grupo_educativo": grupo_educativo_actual,
+            "tipo_centro": tipo_centro_actual,
             "filtros": filtros_actuales,
             "comparativa_2025_disponible": baseline_metrics is not None,
         },
@@ -253,6 +255,7 @@ Distingue hallazgos fuertes de señales exploratorias cuando el tamaño muestral
 Prioriza lectura de NPS Alexia, NPS Módulo, CSAT Alexia, CSAT Capacitación y volumen de respuestas.
 Analiza comentarios abiertos sólo como evidencia cualitativa anonimizada.
 No menciones nombres de centros ni intentes inferir usuarios individuales.
+Indica explícitamente el tipo de centro incluido y si el análisis considera todos los tipos o uno específico.
 Siempre debes incluir una lectura explícita de los comentarios abiertos cuando el payload los incluya.
 Siempre debes analizar el grupo no_utilizo_nuevas_funcionalidades cuando el payload lo incluya.
 Entrega conclusiones breves y recomendaciones prácticas.
@@ -260,7 +263,7 @@ Entrega conclusiones breves y recomendaciones prácticas.
 
 
 USER_PROMPT_ANALISIS_INTELIGENTE = """
-Analiza las métricas del grupo educativo seleccionado comparando 2026 contra 2025 cuando exista información comparable.
+Analiza las métricas del grupo educativo y/o tipo de centro seleccionados, comparando 2026 contra 2025 cuando exista información comparable.
 
 Usa estos datos agregados:
 {payload_json}
@@ -633,9 +636,11 @@ if centros_grupo_educativo is not None:
     st.dataframe(centros_grupo_educativo, use_container_width=True)
 
 st.markdown("#### Análisis Inteligente")
-analisis_disponible = ENCUESTAS[encuesta_seleccionada]["anio"] == 2026 and not todos_los_grupos_educativos
+analisis_disponible = ENCUESTAS[encuesta_seleccionada]["anio"] == 2026 and (
+    not todos_los_grupos_educativos or tipo_seleccionado != "Todos los tipos"
+)
 if not analisis_disponible:
-    st.info("Selecciona la encuesta 2026 y un grupo educativo para generar el análisis inteligente.")
+    st.info("Selecciona la encuesta 2026 y filtra por grupo educativo o tipo de centro para generar el análisis inteligente.")
 elif st.button("Generar análisis inteligente"):
     filtros_analisis = {
         "modulo": modulo_seleccionado,
@@ -647,6 +652,7 @@ elif st.button("Generar análisis inteligente"):
     }
     payload_analisis = construir_payload_analisis_inteligente(
         grupo_educativo_seleccionado,
+        tipo_seleccionado,
         filtros_analisis,
         metricas_actuales,
         metricas_2025,
