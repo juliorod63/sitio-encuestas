@@ -24,7 +24,7 @@ ENCUESTAS = {
         "anio": 2026,
         "url": "https://raw.githubusercontent.com/juliorod63/DATASETS/refs/heads/main/CL_Satisfaccio%CC%81n_2026.csv",
         "url_respaldo": "https://cdn.jsdelivr.net/gh/juliorod63/DATASETS@main/CL_Satisfaccio%CC%81n_2026.csv",
-        "separador": ",",
+        "separador": ";",
     },
 }
 
@@ -108,6 +108,7 @@ def load_data(nombre_encuesta, version_cache=0):
         engine="python",
         on_bad_lines="warn",
     )
+    df = df.dropna(how="all").reset_index(drop=True)
     df["Anio"] = fuente["anio"]
 
     return df
@@ -225,7 +226,7 @@ def transformacion_df(df):
         df["Grupo_Educativo"] = df["Grupo_Educativo"].replace("", "Stand Alone")
     df["Grupo_Educativo"] = df["Grupo_Educativo"].str.title()
 
-    df["Cargo"] = df["Cargo"].str.lower().replace({
+    df["Cargo"] = df["Cargo"].fillna("Sin dato").astype(str).str.strip().str.lower().replace({
     "profesor": "Docente",
     "profesor ": "Docente",
     "profesora ": "Docente",
@@ -313,10 +314,11 @@ def transformacion_df(df):
     df.loc[df["Cargo"].str.contains("mantenimiento", case=False), "Cargo"] = "Mantenimiento"
     df.loc[df["Cargo"].str.contains("prof de", case=False), "Cargo"] = "Docente"
     df.loc[df["Cargo"].str.contains("eca", case=False), "Cargo"] = "Encargado/a"
+    df["Cargo"] = df["Cargo"].replace("", "sin dato").replace("sin dato", "Sin dato")
     counts = (df["Cargo"].value_counts())
 
     # Reemplaza los valores que aparecen solo una vez por "Otros"
-    df["Cargo"] = df["Cargo"].apply(lambda x: x if counts[x] >  2 else "Otros")
+    df["Cargo"] = df["Cargo"].apply(lambda x: x if x == "Sin dato" or counts[x] > 2 else "Otros")
     return df
 
 
