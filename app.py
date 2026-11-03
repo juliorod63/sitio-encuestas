@@ -41,7 +41,7 @@ def mostrar_metrica(columna, etiqueta, valor, comparativa_2025=None, ayuda=None)
             unsafe_allow_html=True,
         )
 
-    if etiqueta == "Respuestas":
+    if etiqueta in ("Respuestas", "Centros"):
         columna.metric(label=etiqueta, value=f"{valor}", help=ayuda)
         if comparativa_2025 is not None:
             columna.markdown(
@@ -350,6 +350,7 @@ st.write("Duplicados eliminados: ", duplicados_eliminados)
 df = transformar_centros(df)
 
 df_comparativa_2025 = None
+df_detalle_2025 = None
 respuestas_originales_2025 = None
 duplicados_eliminados_2025 = None
 if ENCUESTAS[encuesta_seleccionada]["anio"] == 2026:
@@ -358,6 +359,7 @@ if ENCUESTAS[encuesta_seleccionada]["anio"] == 2026:
     df_comparativa_2025 = transformacion_df(df_comparativa_2025)
     df_comparativa_2025, duplicados_eliminados_2025 = deduplicar_por_email(df_comparativa_2025)
     df_comparativa_2025 = transformar_centros(df_comparativa_2025)
+    df_detalle_2025 = df_comparativa_2025.copy()
     with st.expander("Control de respuestas duplicadas 2025"):
         st.write("Respuestas originales: ", respuestas_originales_2025)
         st.write("Respuestas después de eliminar duplicados: ", len(df_comparativa_2025))
@@ -422,11 +424,8 @@ grupo_educativo_seleccionado = (
     if todos_los_grupos_educativos
     else grupos_educativos_seleccionados
 )
-centros_grupo_educativo = None
 if not todos_los_grupos_educativos:
     df_metricas = df_metricas[df_metricas["Grupo_Educativo"].isin(grupos_educativos_seleccionados)]
-    centros_grupo_educativo = df_metricas["Centro"].value_counts().reset_index()
-    centros_grupo_educativo.columns = ["Centro", "Respuestas"]
     if df_comparativa_2025 is not None:
         df_comparativa_2025 = df_comparativa_2025[df_comparativa_2025["Grupo_Educativo"].isin(grupos_educativos_seleccionados)]
 
@@ -502,17 +501,21 @@ with st.expander("¿Cómo calculamos el NPS y el CSAT?"):
       - n es el tamaño de la muestra
     """)
 
+centros_count = df_metricas["Centro"].value_counts().reset_index()
+centros_count.columns = ["Centro", "Respuestas"]
+
 metricas_actuales = calcular_metricas_basicas(df_metricas)
 metricas_2025 = None
 if df_comparativa_2025 is not None and not df_comparativa_2025.empty:
     metricas_2025 = calcular_metricas_basicas(df_comparativa_2025)
 
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4, col5, col6 = st.columns(6)
 mostrar_metrica(col1, "Respuestas", metricas_actuales["Respuestas"], metricas_2025["Respuestas"] if metricas_2025 else None, "Cantidad de respuestas incluidas en los filtros de métricas")
 mostrar_metrica(col2, "NPS Alexia", metricas_actuales["NPS Alexia"], metricas_2025["NPS Alexia"] if metricas_2025 else None, "NPS basado en la pregunta de recomendar Alexia")
 mostrar_metrica(col3, "NPS Modulo", metricas_actuales["NPS Modulo"], metricas_2025["NPS Modulo"] if metricas_2025 else None, "NPS basado en la pregunta de recomendar el Módulo")
 mostrar_metrica(col4, "CSAT Alexia", metricas_actuales["CSAT Alexia"], metricas_2025["CSAT Alexia"] if metricas_2025 else None, "CSAT basado en la satisfacción general con Alexia")
 mostrar_metrica(col5, "CSAT Capacitación", metricas_actuales["CSAT Capacitación"], metricas_2025["CSAT Capacitación"] if metricas_2025 else None, "CSAT basado en la satisfacción con la Capacitación")
+mostrar_metrica(col6, "Centros", centros_count.shape[0], int(df_comparativa_2025["Centro"].nunique()) if metricas_2025 else None, "Cantidad de centros distintos con respuestas incluidas en los filtros de métricas")
 
 df_metricas = df_metricas.copy()
 df_metricas["Grupo_NPS"] = pd.NA
@@ -631,9 +634,9 @@ else:
     grafico_variacion.update_xaxes(dtick=1, title="Puntaje NPS")
     st.plotly_chart(grafico_variacion, use_container_width=True)
 
-if centros_grupo_educativo is not None:
+if not todos_los_grupos_educativos:
     st.markdown(f"#### Centros incluidos en: {', '.join(grupos_educativos_seleccionados)}")
-    st.dataframe(centros_grupo_educativo, use_container_width=True)
+    st.dataframe(centros_count, use_container_width=True)
 
 st.markdown("#### Análisis Inteligente")
 analisis_disponible = ENCUESTAS[encuesta_seleccionada]["anio"] == 2026 and (
@@ -718,9 +721,7 @@ if any(columna in df.columns for columna in columnas_adicionales):
         )
 
 st.markdown("### Análisis de Respuestas por Centro")
-
-centros_count = df["Centro"].value_counts().reset_index()
-centros_count.columns = ["Centro", "Respuestas"]
+st.caption("Los centros y sus resultados corresponden a los filtros seleccionados en Métricas Clave.")
 
 st.metric(label="Centros", value=f"{centros_count.shape[0]}")
 
@@ -728,7 +729,7 @@ fig = px.bar(centros_count, x="Centro", y="Respuestas", title="Cantidad de respu
 st.plotly_chart(fig)
 
 # calcular_NPS_Alexia recibe un DataFrame y calcula el NPS
-tabla_nps = df.groupby("Centro", group_keys=False).apply(calcular_NPS_Alexia).reset_index()
+tabla_nps = df_metricas.groupby("Centro", group_keys=False).apply(calcular_NPS_Alexia).reset_index()
 tabla_nps.columns = ["Centro", "NPS_Alexia"]
 
 
@@ -787,15 +788,41 @@ if not centros_seleccionados:
 
 # Filtra el DataFrame por los centros seleccionados
 df_filtrado = df_detalle[df_detalle["Centro"].isin(centros_seleccionados)]
+metricas_detalle_2025 = None
+if df_detalle_2025 is not None:
+    if grupo_detalle_seleccionado != "Todos los grupos educativos":
+        df_detalle_2025 = df_detalle_2025[
+            df_detalle_2025["Grupo_Educativo"] == grupo_detalle_seleccionado
+        ]
+    df_detalle_2025 = df_detalle_2025[
+        df_detalle_2025["Centro"].isin(centros_seleccionados)
+    ]
+    if df_detalle_2025.empty:
+        st.info("No hay respuestas de 2025 para los centros y el grupo educativo seleccionados.")
+    else:
+        metricas_detalle_2025 = calcular_metricas_basicas(df_detalle_2025)
+    st.caption(
+        "Comparativa con 2025 para los mismos centros y el grupo educativo seleccionado. "
+        "Las métricas de cada año utilizan sus propias respuestas disponibles."
+    )
 st.divider()
 
 col1, col2, col3, col4, col5 = st.columns(5)
 
-col1.metric(label="Respuestas", value=f"{df_filtrado.shape[0]}")
-col2.metric(label="NPS Recomendar", value=f"{calcular_NPS_Alexia(df_filtrado):.2f}")
-col3.metric(label="NPS Modulo", value=f"{calcular_NPS_Modulo(df_filtrado):.2f}")
-col4.metric(label="CSAT Alexia", value=f"{calcular_CSAT(df_filtrado):.2f}")
-col5.metric(label="CSAT Capacitación", value=f"{calcular_CSAT_Capacitacion(df_filtrado):.2f}")
+metricas_detalle = calcular_metricas_basicas(df_filtrado)
+for columna, etiqueta, clave in (
+    (col1, "Respuestas", "Respuestas"),
+    (col2, "NPS Recomendar", "NPS Alexia"),
+    (col3, "NPS Modulo", "NPS Modulo"),
+    (col4, "CSAT Alexia", "CSAT Alexia"),
+    (col5, "CSAT Capacitación", "CSAT Capacitación"),
+):
+    valor = metricas_detalle[clave]
+    if ENCUESTAS[encuesta_seleccionada]["anio"] == 2026:
+        valor_2025 = metricas_detalle_2025[clave] if metricas_detalle_2025 else None
+        mostrar_metrica(columna, etiqueta, valor, valor_2025)
+    else:
+        columna.metric(label=etiqueta, value=f"{valor}" if etiqueta == "Respuestas" else f"{valor:.2f}")
 
 import plotly.graph_objects as go
 
@@ -917,4 +944,3 @@ fig = px.scatter(
 )
 fig.update_xaxes(type='category')
 st.plotly_chart(fig)
-
