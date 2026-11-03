@@ -1,3 +1,4 @@
+import json
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -185,6 +186,114 @@ class FiltrosCentrosTests(unittest.TestCase):
     def test_detalle_2025_no_muestra_comparativa_con_el_mismo_anio(self):
         self.assertFalse(any("2025:" in texto for texto in self.markdown_detalle()))
         self.assertFalse(any("vs. 2025" in texto for texto in self.markdown_detalle()))
+
+    def generar_analisis_centros(self):
+        next(
+            boton for boton in self.app.button
+            if boton.label == "Generar análisis inteligente de centros seleccionados"
+        ).click().run()
+        self.assertFalse(self.app.exception)
+
+    def extraer_payload(self, generador):
+        system_prompt, user_prompt = generador.call_args.args
+        inicio = user_prompt.index("{")
+        payload, _ = json.JSONDecoder().raw_decode(user_prompt[inicio:])
+        for titulo in (
+            "1. Resumen ejecutivo", "2. Comparativa 2026 vs 2025",
+            "3. Lectura de comentarios abiertos", "4. Adopción de nuevas funcionalidades",
+            "5. Grupo que no utilizó las nuevas funcionalidades",
+            "6. Riesgos y señales de alerta", "7. Recomendaciones concretas",
+        ):
+            self.assertIn(titulo, user_prompt)
+        self.assertIn("No menciones nombres de centros", system_prompt)
+        self.assertNotIn("Centro 0", user_prompt)
+        self.assertNotIn("@example.test", user_prompt)
+        return payload
+
+    def test_analisis_inteligente_centros_limita_datos_y_comparativa(self):
+        self.datos.loc[self.datos["Centro"] == "Centro 1", "Mejoras"] = "Mejorar Centro 1"
+        self.datos_2025 = self.datos_2025.iloc[:6].copy()
+        with patch.object(utils, "generar_analisis_inteligente_openrouter", return_value="Informe de prueba") as generador:
+            self.app.sidebar.selectbox[0].select("Encuesta 2026").run()
+            next(w for w in self.app.selectbox if w.label == "Filtra las métricas por rol:").select("Docente").run()
+            next(w for w in self.app.multiselect if w.label == "Selecciona uno o más centros:").set_value(["Centro 1"]).run()
+            generador.assert_not_called()
+            self.generar_analisis_centros()
+            generador.assert_called_once()
+            payload = self.extraer_payload(generador)
+            self.assertEqual(payload["metricas_2026"]["Respuestas"], 4)
+            self.assertEqual(payload["metricas_2025"]["Respuestas"], 2)
+            self.assertEqual(payload["centros_incluidos"]["total_centros"], 1)
+            self.assertEqual(payload["contexto"]["tipo_centro"], ["Red"])
+            self.assertEqual(payload["contexto"]["centros_seleccionados"], ["Centro seleccionado 1"])
+            self.assertIn("Redacta un informe conjunto de la selección", generador.call_args.args[1])
+            self.assertIn("no atribuyas sus resultados a un centro concreto", generador.call_args.args[1])
+            self.assertEqual(payload["comentarios_2026"]["muestra_anonimizada"], ["Mejorar [centro]"] * 4)
+            self.assertEqual(payload["mejoras_implementadas_2026"]["distribucion"], {"Regulares": 4})
+            self.assertTrue(any(m.value == "Informe de prueba" for m in self.app.markdown))
+
+    def test_analisis_inteligente_centros_grupo_y_sin_comparativa(self):
+        self.datos.loc[self.datos["Centro"] == "Centro 0", "Grupo_Educativo"] = "Grupo B"
+        self.datos_2025 = self.datos_2025[self.datos_2025["Centro"] != "Centro 0"]
+        with patch.object(utils, "generar_analisis_inteligente_openrouter", return_value="Informe sin historico") as generador:
+            self.app.sidebar.selectbox[0].select("Encuesta 2026").run()
+            next(w for w in self.app.selectbox if w.label == "Filtra el análisis detallado por grupo educativo:").select("Grupo B").run()
+            next(w for w in self.app.multiselect if w.label == "Selecciona uno o más centros:").set_value(["Centro 0"]).run()
+            self.generar_analisis_centros()
+            payload = self.extraer_payload(generador)
+            self.assertEqual(payload["metricas_2026"]["Respuestas"], 4)
+            self.assertEqual(payload["contexto"]["grupo_educativo"], "Grupo B")
+            self.assertFalse(payload["contexto"]["comparativa_2025_disponible"])
+            self.assertEqual(payload["metricas_2025"], "sin comparativa")
+            self.assertEqual(payload["distribucion_nps_2025"], "sin comparativa")
+
+    def test_analisis_inteligente_centros_restriccion_anio_y_errores(self):
+        self.assertFalse(any(
+            b.label == "Generar análisis inteligente de centros seleccionados"
+            for b in self.app.button
+        ))
+        self.app.sidebar.selectbox[0].select("Encuesta 2026").run()
+        next(w for w in self.app.multiselect if w.label == "Selecciona uno o más centros:").set_value(["Centro 0"]).run()
+        for error in (ValueError("Falta configurar la clave"), utils.OpenRouterError("Servicio no disponible")):
+            with self.subTest(error=type(error).__name__):
+                with patch.object(utils, "generar_analisis_inteligente_openrouter", side_effect=error):
+                    self.generar_analisis_centros()
+                    self.assertTrue(any(str(error) in e.value for e in self.app.error))
+
+    def test_analisis_centros_exige_seleccion_y_muestra_alias_locales(self):
+        self.datos["Centro"] = self.datos["Centro"].replace({
+            "Centro 1": "Escuela Sur", "Centro 2": "Escuela Norte",
+        })
+        self.datos_2025 = self.datos.copy()
+        with patch.object(utils, "generar_analisis_inteligente_openrouter", return_value="Informe conjunto") as generador:
+            self.app.sidebar.selectbox[0].select("Encuesta 2026").run()
+            boton = next(b for b in self.app.button if b.label == "Generar análisis inteligente de centros seleccionados")
+            self.assertTrue(boton.disabled)
+            self.generar_analisis_centros()
+            generador.assert_not_called()
+            self.assertEqual(self.app.metric[-5].value, "12")
+            next(w for w in self.app.multiselect if w.label == "Selecciona uno o más centros:").set_value(["Escuela Sur", "Escuela Norte"]).run()
+            self.generar_analisis_centros()
+            payload = self.extraer_payload(generador)
+            self.assertEqual(payload["contexto"]["centros_seleccionados"], [
+                "Centro seleccionado 1", "Centro seleccionado 2",
+            ])
+            self.assertEqual(payload["metricas_2026"]["Respuestas"], 8)
+            self.assertNotIn("Escuela Sur", generador.call_args.args[1])
+            self.assertNotIn("Escuela Norte", generador.call_args.args[1])
+            tabla_alias = next(
+                d.value for d in self.app.dataframe
+                if list(d.value.columns) == ["Alias del informe", "Centro"]
+            )
+            self.assertEqual(tabla_alias.to_dict("records"), [
+                {"Alias del informe": "Centro seleccionado 1", "Centro": "Escuela Norte"},
+                {"Alias del informe": "Centro seleccionado 2", "Centro": "Escuela Sur"},
+            ])
+            next(w for w in self.app.multiselect if w.label == "Selecciona uno o más centros:").set_value([]).run()
+            generador.reset_mock()
+            self.generar_analisis_centros()
+            generador.assert_not_called()
+            self.assertFalse(any(m.value == "Informe conjunto" for m in self.app.markdown))
 
 
 if __name__ == "__main__":

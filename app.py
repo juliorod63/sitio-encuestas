@@ -263,7 +263,7 @@ Entrega conclusiones breves y recomendaciones prácticas.
 
 
 USER_PROMPT_ANALISIS_INTELIGENTE = """
-Analiza las métricas del grupo educativo y/o tipo de centro seleccionados, comparando 2026 contra 2025 cuando exista información comparable.
+Analiza exclusivamente las métricas de la selección descrita en el contexto y sus filtros (grupo educativo, tipo de centro o centros seleccionados), comparando 2026 contra 2025 cuando exista información comparable.
 
 Usa estos datos agregados:
 {payload_json}
@@ -290,6 +290,40 @@ En "Adopción de nuevas funcionalidades", usa la distribución de mejoras implem
 No uses tablas largas. No inventes causas no presentes en los datos.
 No nombres centros específicos ni usuarios individuales.
 """.strip()
+
+
+USER_PROMPT_ANALISIS_CENTROS = """
+El alcance de este informe es exclusivamente la selección explícita de centros,
+identificada en contexto.centros_seleccionados mediante alias anónimos.
+En el resumen ejecutivo enumera todos esos alias y el total de centros.
+Redacta un informe conjunto de la selección, no un informe general del grupo
+educativo ni un análisis individual por centro.
+Las métricas, comentarios y distribuciones son agregados del conjunto:
+no atribuyas sus resultados a un centro concreto.
+Usa solo los alias facilitados, sin inferir nombres reales.
+""".strip() + "\n\n" + USER_PROMPT_ANALISIS_INTELIGENTE
+
+
+def mostrar_analisis_inteligente(payload):
+    plantilla = (
+        USER_PROMPT_ANALISIS_CENTROS
+        if "centros_seleccionados" in payload["contexto"]
+        else USER_PROMPT_ANALISIS_INTELIGENTE
+    )
+    user_prompt = plantilla.format(
+        payload_json=json.dumps(payload, ensure_ascii=False, indent=2)
+    )
+    try:
+        with st.spinner("Generando análisis inteligente..."):
+            analisis = generar_analisis_inteligente_openrouter(
+                SYSTEM_PROMPT_ANALISIS_INTELIGENTE, user_prompt,
+            )
+        st.markdown(analisis)
+    except ValueError as error:
+        st.error(str(error))
+    except OpenRouterError as error:
+        st.error(f"No se pudo generar el análisis inteligente: {error}")
+
 
 st.set_page_config(
     page_title="Resultados Encuesta Satisfacción Clientes Chile",
@@ -662,18 +696,7 @@ elif st.button("Generar análisis inteligente"):
         df_metricas,
         df_comparativa_2025,
     )
-    user_prompt = USER_PROMPT_ANALISIS_INTELIGENTE.format(
-        payload_json=json.dumps(payload_analisis, ensure_ascii=False, indent=2)
-    )
-
-    try:
-        with st.spinner("Generando análisis inteligente..."):
-            analisis_inteligente = generar_analisis_inteligente_openrouter(SYSTEM_PROMPT_ANALISIS_INTELIGENTE, user_prompt)
-        st.markdown(analisis_inteligente)
-    except ValueError as error:
-        st.error(str(error))
-    except OpenRouterError as error:
-        st.error(f"No se pudo generar el análisis inteligente: {error}")
+    mostrar_analisis_inteligente(payload_analisis)
 
 st.divider()
 
@@ -782,6 +805,7 @@ centros_seleccionados = st.multiselect(
     "Selecciona uno o más centros:",
     centros_ordenados,
 )
+hay_seleccion_explicita_centros = bool(centros_seleccionados)
 if not centros_seleccionados:
     centros_seleccionados = centros_ordenados
     st.info("Sin centros seleccionados: se muestran todos los centros.")
@@ -823,6 +847,49 @@ for columna, etiqueta, clave in (
         mostrar_metrica(columna, etiqueta, valor, valor_2025)
     else:
         columna.metric(label=etiqueta, value=f"{valor}" if etiqueta == "Respuestas" else f"{valor:.2f}")
+
+st.markdown("#### Análisis Inteligente de Centros Seleccionados")
+st.caption(
+    "Analiza únicamente la selección del Análisis Detallado por Centro, sin aplicar "
+    "los filtros de Métricas Clave. Debes seleccionar explícitamente al menos un centro."
+)
+alias_centros = {
+    f"Centro seleccionado {indice}": centro
+    for indice, centro in enumerate(sorted(centros_seleccionados), start=1)
+} if hay_seleccion_explicita_centros else {}
+if ENCUESTAS[encuesta_seleccionada]["anio"] != 2026:
+    st.info("Selecciona la encuesta 2026 para generar el análisis inteligente de centros.")
+else:
+    if not hay_seleccion_explicita_centros:
+        st.info("Selecciona al menos un centro para habilitar el análisis inteligente.")
+    else:
+        st.caption("Correspondencia local de alias: los nombres de esta tabla no se envían a OpenRouter.")
+        st.dataframe(
+            pd.DataFrame(alias_centros.items(), columns=["Alias del informe", "Centro"]),
+            use_container_width=True,
+        )
+if ENCUESTAS[encuesta_seleccionada]["anio"] == 2026 and st.button(
+    "Generar análisis inteligente de centros seleccionados",
+    disabled=not hay_seleccion_explicita_centros,
+) and hay_seleccion_explicita_centros:
+    tipos_detalle = sorted(df_filtrado["Tipo"].dropna().astype(str).str.strip().unique()) if "Tipo" in df_filtrado.columns else []
+    tipo_detalle = tipos_detalle or "Sin dato"
+    payload_detalle = construir_payload_analisis_inteligente(
+        grupo_detalle_seleccionado,
+        tipo_detalle,
+        {
+            "alcance": "Solo centros incluidos en el Análisis Detallado por Centro",
+            "grupo_educativo": grupo_detalle_seleccionado,
+            "tipos_incluidos": tipo_detalle,
+            "cantidad_centros": int(df_filtrado["Centro"].nunique()),
+        },
+        metricas_detalle,
+        metricas_detalle_2025,
+        df_filtrado,
+        df_detalle_2025,
+    )
+    payload_detalle["contexto"]["centros_seleccionados"] = list(alias_centros)
+    mostrar_analisis_inteligente(payload_detalle)
 
 import plotly.graph_objects as go
 
